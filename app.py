@@ -104,7 +104,7 @@ def summarize_text(text):
     response = openai.Completion.create(
         engine="davinci",
         prompt=f"Provide a concise summary for the following statement:\n{text}",
-        max_tokens=10  # restrict to a shorter output
+        max_tokens=50  # restrict to a shorter output
     )
     return response.choices[0].text.strip()
 
@@ -133,7 +133,7 @@ def process_url(url):
                 response = openai.Completion.create(
                     engine="davinci",
                     prompt=f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}",
-                    max_tokens=150
+                    max_tokens=250
                 )
                 key_points = response.choices[0].text.strip().split("\n")
                 min_length = 5
