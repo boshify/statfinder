@@ -188,7 +188,7 @@ if url:
     show_loading_message()
     statistics = process_url(url)
     if statistics:
-        for idx, (statistic, link) in enumerate(statistics):
+        for statistic, link in statistics:
             example_use = f"<em>'According to a recent report, {statistic} (source: <a href='{link}'>{link}</a>)'</em>"
             st.markdown(stylish_box(
                 f"<strong>Statistic:</strong> {statistic} <br> " +
@@ -196,7 +196,7 @@ if url:
                 f"<strong>Example Use:</strong> {example_use}"
             ), unsafe_allow_html=True)
             
-            unique_key = f"copy_to_clipboard_{idx}_{statistic[:10]}"
+            unique_key = "copy_to_clipboard_" + str(hash(statistic))
             if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
                 # For now, I've just commented out the st.copied line, as it doesn't exist in my knowledge.
                 # st.copied(f"'According to a recent report, {statistic} (source: {link})'")
