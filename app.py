@@ -103,7 +103,7 @@ def show_loading_message(duration=6):  # default duration to 6 seconds, adjust a
 def summarize_text(text):
     response = openai.Completion.create(
         engine="davinci",
-        prompt=f"Provide a very concise summary for the following statement:\n{text}",
+        prompt=f"Provide a concise summary for the following statement:\n{text}",
         max_tokens=10  # restrict to a shorter output
     )
     return response.choices[0].text.strip()
@@ -132,7 +132,7 @@ def process_url(url):
             for idx, text_chunk in enumerate(chunks, 1):
                 response = openai.Completion.create(
                     engine="davinci",
-                    prompt=f"Provide concise one-sentence summaries for the main ideas in the following content:\n{text_chunk}",
+                    prompt=f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}",
                     max_tokens=150
                 )
                 key_points = response.choices[0].text.strip().split("\n")
