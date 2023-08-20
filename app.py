@@ -86,7 +86,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("StatGrabber")
+st.title("StatFinder")
 st.write("Enter a URL and find statistics you can link to quickly!")
 url = st.text_input("Enter URL:")
 
@@ -148,7 +148,7 @@ def score_statistic(statistic, keywords):
 def extract_statistic_from_url(url, keywords):
     page_content = get_webpage_content(url)
     if not page_content:
-        return None, url
+        return []
     page_text = extract_content_from_html(page_content)
     
     potential_statistics = []
@@ -159,21 +159,18 @@ def extract_statistic_from_url(url, keywords):
             start_idx = match.start()
             end_idx = match.end()
 
-            # Extract sentences containing the matched pattern for context.
             start_sentence_idx = page_text.rfind('.', 0, start_idx) + 1  # start of the sentence
             end_sentence_idx = page_text.find('.', end_idx)  # end of the sentence
             surrounding_text = page_text[start_sentence_idx:end_sentence_idx + 1].strip()
 
-            # Ensure the extracted text is a complete sentence.
             if surrounding_text and surrounding_text[-1] == '.' and is_valid_content(surrounding_text):
                 potential_statistics.append((surrounding_text.strip(), score_statistic(surrounding_text, keywords)))
 
-    # Sorting the potential statistics by their scores
     potential_statistics.sort(key=lambda x: -x[1])
     
     if potential_statistics:
-        return potential_statistics[0][0], url
-    return None, url
+        return potential_statistics[:10]
+    return []
 
 def process_url(url):
     show_loading_message()
@@ -181,14 +178,21 @@ def process_url(url):
     if html_content:
         text_content = extract_content_from_html(html_content)
         keywords = extract_keywords(text_content)
-        statistic, link = extract_statistic_from_url(url, keywords)
-        return statistic, link
-    return None, None
+        statistics = extract_statistic_from_url(url, keywords)
+        return [(stat, url) for stat, _ in statistics]
+    return []
 
 if url:
-    statistic, link = process_url(url)
-    if statistic:
-        st.markdown(stylish_box(f"<strong>Statistic:</strong> {statistic} <br> <strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a>"), unsafe_allow_html=True)
+    statistics = process_url(url)
+    if statistics:
+        for statistic, link in statistics:
+            example_use = f"<em>'According to a recent report, {statistic} (source: <a href='{link}'>{link}</a>)'</em>"
+            st.markdown(stylish_box(
+                f"<strong>Statistic:</strong> {statistic} <br> " +
+                f"<strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a> <br> " +
+                f"<strong>Example Use:</strong> {example_use}"
+            ), unsafe_allow_html=True)
+            if st.button(f"Copy '{statistic}' to Clipboard"):
+                st.info("Text displayed above. Use Ctrl+C to copy!")
     else:
         st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
-
