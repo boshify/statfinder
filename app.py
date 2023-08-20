@@ -140,13 +140,18 @@ def extract_statistic_from_url(url):
         matches = re.finditer(pattern, page_text)
         for match in matches:
             start_idx = match.start()
-            surrounding_text = page_text[max(0, start_idx - 60):min(start_idx + match.end() + 60, len(page_text))]
-            if len(surrounding_text.split()) > 5:
+            # Reduced the range of surrounding text extraction to make it concise.
+            surrounding_text = page_text[max(0, start_idx - 30):min(start_idx + match.end() + 30, len(page_text))]
+            if is_valid_content(surrounding_text):
                 potential_statistics.append(surrounding_text.strip())
 
+    # Sorting the potential statistics by length and taking the shortest one (assuming it's the most concise)
+    potential_statistics.sort(key=len)
+    
     if potential_statistics:
         return potential_statistics[0], url
     return None, url
+
 
 def process_url(url):
     show_loading_message()
