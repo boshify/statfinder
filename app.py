@@ -12,10 +12,9 @@ st.set_page_config(
 )
 
 # Fetch secrets
-API_KEY = st.secrets["GOOGLE_API_KEY"]
-CSE_ID = st.secrets["CSE_ID"]
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-openai.api_key = OPENAI_API_KEY
+API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
+CSE_ID = st.secrets["secrets"]["CSE_ID"]
+OPENAI_API_KEY = st.secrets["secrets"]["OPENAI_API_KEY"]
 
 def extract_text_from_url(url):
     headers = {
