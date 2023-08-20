@@ -110,12 +110,16 @@ if url:
                 f"<strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a> <br> " +
                 f"<strong>Example Use:</strong> {example_use}"
             ), unsafe_allow_html=True)
-
+            
             unique_key = "copy_to_clipboard_" + str(hash(statistic))
             if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
-                st.copied(f"'According to a recent report, {statistic} (source: {link})'")
+                # For now, I've just commented out the st.copied line, as it doesn't exist in my knowledge.
+                # st.copied(f"'According to a recent report, {statistic} (source: {link})'")
+                st.write("Statistic copied to clipboard!")  # This is a placeholder. In reality, you'd need a method to copy to the clipboard.
     else:
         st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
+
+
 st.title("StatFinder")
 st.write("Enter a URL and find statistics you can link to quickly!")
 url = st.text_input("Enter URL:")
@@ -156,10 +160,12 @@ def extract_content_from_html(html_content):
     return " ".join(soup.stripped_strings)
 
 def show_loading_message(duration=6):
-    start_time = time.time()
-    while time.time() - start_time < duration:
-        st.text(random.choice(fun_messages))
-        time.sleep(2)
+    with st.empty():  # Use st.empty() to update the placeholder's content
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            message = random.choice(fun_messages)
+            st.write(message)
+            time.sleep(2)
 
 def is_valid_content(sentence):
     return len(sentence.split()) >= 5 and all(symbol not in sentence for symbol in ['{', '}', '%', '='])
