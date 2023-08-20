@@ -28,6 +28,18 @@ def extract_headings(url):
 
     return h1_heading, other_headings
 
+def is_fluff(heading):
+    prompt = f"Is the heading '{heading}' likely to be fluff or not relevant to the main content of a page? (Yes/No)"
+    response = openai.Completion.create(
+      engine="davinci",
+      prompt=prompt,
+      max_tokens=5,
+      n=1,
+      stop=None,
+      temperature=0.5
+    )
+    return response.choices[0].text.strip().lower() == "yes"
+
 def evaluate_heading_relevance(heading, reference_h1):
     prompt = f"On a scale of 1 to 10, rate the relevance of the heading '{heading}' to the main topic '{reference_h1}' (10 being highly relevant)."
     response = openai.Completion.create(
@@ -45,8 +57,11 @@ def evaluate_heading_relevance(heading, reference_h1):
         return 0
 
 def rank_headings_for_statistics(h1_heading, other_headings):
+    # Filter out fluff headings
+    filtered_headings = [(heading, level) for heading, level in other_headings if not is_fluff(heading)]
+
     # Evaluate relevance of each heading
-    scores = [(heading, evaluate_heading_relevance(heading, h1_heading)) for heading, _ in other_headings]
+    scores = [(heading, evaluate_heading_relevance(heading, h1_heading)) for heading, _ in filtered_headings]
 
     # Sort the headings based on their relevance scores
     sorted_headings = [item[0] for item in sorted(scores, key=lambda x: x[1], reverse=True)]
