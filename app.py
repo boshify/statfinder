@@ -18,9 +18,9 @@ def extract_content(url):
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    # Extracting content, focusing on paragraphs
-    paragraphs = [p.text.strip() for p in soup.find_all('p') if len(p.text.split()) > 5]  # Filter short paragraphs
-    return paragraphs
+    # Extracting content: paragraphs, headings, and list items
+    contents = [tag.text.strip() for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li']) if len(tag.text.split()) > 5]  # Filter short content
+    return contents
 
 def suitability_score_for_statistic(content):
     prompt = f"On a scale of 1 to 10, rate the suitability of the content for adding a statistic: '{content}'"
