@@ -54,21 +54,6 @@ def get_insight_from_openai(link):
     except:
         return "Unable to fetch insight."
 
-# ... [rest of the code remains the same]
-
-for s in stats:
-    if "Error" in s['stat']:
-        st.error(s['stat'])  # Display the error message
-    else:
-        insight = get_insight_from_openai(s['link'])
-        truncated_link = (s['link'][:50] + '...') if len(s['link']) > 50 else s['link']
-        st.markdown(f"**Stat:** {s['stat']}")
-        st.markdown(f"**Link:** [{truncated_link}]({s['link']})")
-        st.markdown(f"**Insight:** {insight}")
-        st.markdown(f"**Example Usage:** {s['stat']} [source]({s['link']})")
-        st.markdown("---")
-
-
 # Streamlit layout and components
 c30, c31 = st.columns([10.5, 1])
 
@@ -100,8 +85,9 @@ with c1:
                     st.error(s['stat'])  # Display the error message
                 else:
                     insight = get_insight_from_openai(s['link'])
+                    truncated_link = (s['link'][:50] + '...') if len(s['link']) > 50 else s['link']
                     st.markdown(f"**Stat:** {s['stat']}")
-                    st.markdown(f"**Link:** [Here]({s['link']})")
+                    st.markdown(f"**Link:** [{truncated_link}]({s['link']})")
                     st.markdown(f"**Insight:** {insight}")
                     st.markdown(f"**Example Usage:** {s['stat']} [source]({s['link']})")
                     st.markdown("---")
