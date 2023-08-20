@@ -1,7 +1,7 @@
 import streamlit as st
 import openai
-import requests
 from bs4 import BeautifulSoup
+import requests
 
 # Load secrets
 secrets = st.secrets["secrets"]
@@ -11,6 +11,42 @@ OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
+
+# Add the chunk_text function here
+def chunk_text(text, max_length=1500):
+    sentences = text.split('.')
+    chunks = []
+    chunk = ""
+    for sentence in sentences:
+        if len(chunk) + len(sentence) < max_length:
+            chunk += sentence + "."
+        else:
+            chunks.append(chunk)
+            chunk = sentence + "."
+    if chunk:
+        chunks.append(chunk)
+    return chunks
+
+# Function to get webpage content
+def get_webpage_content(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.text
+    except Exception as e:
+        st.write(f"Error fetching the URL: {e}")
+        return None
+
+# Function to extract content from the HTML
+def extract_content_from_html(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    # This is just a basic extraction, and might need adjustments
+    for script in soup(["script", "style"]):
+        script.extract()
+    return " ".join(soup.stripped_strings)
 
 # Styling
 st.markdown(
@@ -65,14 +101,18 @@ if st.button("Go!"):
     html_content = get_webpage_content(url)
     if html_content:
         text_content = extract_content_from_html(html_content)
-        # Now, process the text_content with the OpenAI API
-        response = openai.Completion.create(
-          engine="davinci",
-          prompt=f"Extract the 10 key points from the following content:\n{text_content}",
-          max_tokens=500
-        )
-        key_points = response.choices[0].text.strip().split("\n")[:10]
-        for idx, point in enumerate(key_points, 1):
+        chunks = chunk_text(text_content)
+        aggregated_points = []
+        for text_chunk in chunks:
+            response = openai.Completion.create(
+                engine="davinci",
+                prompt=f"Extract key points from the following content:\n{text_chunk}",
+                max_tokens=150  # adjust as needed
+            )
+            key_points = response.choices[0].text.strip().split("\n")
+            aggregated_points.extend(key_points)
+        # Display the top 10 key points
+        for idx, point in enumerate(aggregated_points[:10], 1):
             st.write(f"{idx}. {point}")
     else:
         st.write("Failed to fetch the content.")
