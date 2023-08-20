@@ -37,6 +37,9 @@ def rank_headings_for_statistics(headings):
       temperature=0.5
     )
 
+    st.write("Model's Output:")  # Debugging line
+    st.write(response.choices[0].text.strip())  # Debugging line
+
     ranked_output = response.choices[0].text.strip().split("\n")
     
     # Extract the original headings from the ranked list
@@ -49,6 +52,7 @@ def rank_headings_for_statistics(headings):
                 ranked_headings.append(headings[index])
 
     return ranked_headings[:10]
+
 
 
 st.title("Top 10 Headings for Statistics")
