@@ -41,6 +41,8 @@ st.markdown(
 )
 
 st.title("StatGrabber")
+st.description("Enter a URL and find statistics you can link to quickly!")
+
 url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
 
 if st.button("Go!"):
@@ -51,7 +53,6 @@ st.markdown(
     """
     <div class="footer">
         <img src="https://jonathanboshoff.com/wp-content/uploads/2021/01/Jonathan-Boshoff-2.png" alt="Jonathan Boshoff">
-        <p>Enter a URL and find statistics you can link to quickly!</p>
         <a href="https://jonathanboshoff.com">Made by: Jonathan Boshoff</a>
     </div>
     """,
