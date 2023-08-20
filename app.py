@@ -7,6 +7,9 @@ import openai
 secrets = st.secrets["secrets"]
 OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 
+# Initialize OpenAI with your API key
+openai.api_key = OPENAI_API_KEY
+
 
 def extract_headings(url):
     headers = {
@@ -46,10 +49,10 @@ def evaluate_heading_relevance(heading, level):
         return 0
 
 def rank_headings_for_statistics(headings):
-    exclude_list = ["Platform", "Footer", "Contact Us", "Learn", "Privacy & Terms"]
-    unique_headings = list(set([heading for heading, level in headings if heading not in exclude_list]))
+    # Ensure unique headings
+    unique_headings = list(set(headings))
 
-    scores = [(heading, evaluate_heading_relevance(heading, level)) for heading, level in headings if heading not in exclude_list]
+    scores = [(heading, evaluate_heading_relevance(heading, level)) for heading, level in unique_headings]
     sorted_headings = [item[0] for item in sorted(scores, key=lambda x: x[1], reverse=True)]
     return sorted_headings[:10]
 
@@ -60,6 +63,6 @@ url = st.text_input("Enter a URL:")
 if url:
     headings = extract_headings(url)
     top_headings = rank_headings_for_statistics(headings)
-    st.write("Top 10 Headings for Adding Statistics:")
+    st.subheader("Top 10 Headings for Adding Statistics:")  # Using subheader for H2
     for heading in top_headings:
         st.write(heading)
