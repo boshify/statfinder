@@ -40,25 +40,6 @@ STATISTIC_PATTERNS = [
     re.compile(r'(?P<stat>\d+%?\s?(?:of|from|to|between)\s?.+?)\.')
 ]
 
-def chunk_text(text, max_length=1500):
-    sentences = sent_tokenize(text)
-    chunks = []
-    chunk = []
-    current_length = 0
-
-    for sentence in sentences:
-        current_length += len(sentence)
-        if current_length < max_length:
-            chunk.append(sentence)
-        else:
-            chunks.append(" ".join(chunk))
-            chunk = [sentence]
-            current_length = len(sentence)
-
-    if chunk:
-        chunks.append(" ".join(chunk))
-    return chunks
-
 def stylish_box(content):
     box_style = """
     <div style="
@@ -150,35 +131,16 @@ def search_google(query):
     response = requests.get(url).json()
     return response['items'][0]['link']
 
-def score_statistic(statistic, keywords):
-    score = 0
-    for keyword in keywords:
-        score += statistic.lower().count(keyword.lower())
-    return score
-
-def extract_statistic_from_url(url, keywords):
-    page_content = get_webpage_content(url)
-    if not page_content:
-        return []
-    page_text = extract_content_from_html(page_content)
-    
-    potential_statistics = []
-
-    for pattern in STATISTIC_PATTERNS:
-        matches = re.finditer(pattern, page_text)
-        for match in matches:
-            start_idx = match.start()
-            end_idx = match.end()
-
-            start_sentence_idx = page_text.rfind('.', 0, start_idx) + 1  # start of the sentence
-            end_sentence_idx = page_text.find('.', end_idx)  # end of the sentence
-            surrounding_text = page_text[start_sentence_idx:end_sentence_idx + 1].strip()
-
-            if surrounding_text and surrounding_text[-1] == '.' and is_valid_content(surrounding_text):
-                potential_statistics.append((surrounding_text.strip(), score_statistic(surrounding_text, keywords)))
-
-    potential_statistics.sort(key=lambda x: x[1], reverse=True)
-    return [(stat[0], search_google(stat[0])) for stat in potential_statistics[:10]]
+def generate_example_usage(statistic):
+    try:
+        response = openai.Completion.create(
+          engine="davinci",
+          prompt=f"Write a sentence using the statistic: '{statistic}'",
+          max_tokens=100
+        )
+        return response.choices[0].text.strip()
+    except:
+        return f"A recent study mentioned that {statistic}"
 
 def process_url(url):
     content = get_webpage_content(url)
@@ -190,19 +152,37 @@ def process_url(url):
         return []
 
     main_keywords = extract_keywords(text)
-    statistics = extract_statistic_from_url(url, main_keywords)
-    return statistics
+    potential_statistics = []
+
+    for pattern in STATISTIC_PATTERNS:
+        matches = re.finditer(pattern, text)
+        for match in matches:
+            start_idx = match.start()
+            end_idx = match.end()
+
+            start_sentence_idx = text.rfind('.', 0, start_idx) + 1  # start of the sentence
+            end_sentence_idx = text.find('.', end_idx)  # end of the sentence
+            surrounding_text = text[start_sentence_idx:end_sentence_idx + 1].strip()
+
+            if surrounding_text and surrounding_text[-1] == '.' and is_valid_content(surrounding_text):
+                potential_statistics.append(surrounding_text.strip())
+
+    if not potential_statistics:
+        return []
+
+    scored_statistics = [(stat, search_google(stat)) for stat in potential_statistics]
+    return scored_statistics
 
 if url:
     show_loading_message()
     statistics = process_url(url)
     if statistics:
         for statistic, link in statistics:
-            example_use = f"<em>'According to a recent report, {statistic} (source: <a href='{link}'>{link}</a>)'</em>"
+            example_use = generate_example_usage(statistic)
             st.markdown(stylish_box(
                 f"<strong>Statistic:</strong> {statistic} <br> " +
                 f"<strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a> <br> " +
-                f"<strong>Example Use:</strong> {example_use}"
+                f"<strong>Example Use:</strong> <em>'{example_use}'</em>"
             ), unsafe_allow_html=True)
     else:
         st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
