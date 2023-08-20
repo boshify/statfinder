@@ -88,3 +88,27 @@ if url:
             except Exception as e:
                 st.error(f"Error while searching for statistics: {e}")
 
+
+# After the user inputs the URL
+if url:
+    st.write("URL provided:", url)  # Debug: Check if the URL is correctly captured
+
+    # Extract and summarize the content
+    extracted_content = extract_content_from_url(url)
+    st.write("Extracted Content:", extracted_content)  # Debug: Check the extracted content
+
+    summarized_text = summarize_text_with_gpt(extracted_content)
+    st.write("Summarized Text:", summarized_text)  # Debug: Check the summarized content
+
+    # Generate queries for statistics
+    queries = generate_queries_with_gpt(summarized_text)
+    st.write("Generated Queries:", queries)  # Debug: Check the generated queries
+
+    # Fetch statistics based on the queries
+    stats = fetch_statistics(queries)
+    st.write("Fetched Statistics:", stats)  # Debug: Check the fetched statistics
+
+    # Display the results
+    display_results(summarized_text, stats)
+
+
