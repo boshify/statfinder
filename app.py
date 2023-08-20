@@ -17,17 +17,6 @@ CSE_ID = st.secrets["CSE_ID"]
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
 
-# Basic trust scores for domains
-TRUST_SCORES = {
-    'gov': 10,
-    'edu': 9,
-    'org': 8,
-    'com': 7,
-    'net': 6,
-    'io': 5,
-    'co': 4
-}
-
 def extract_text_from_url(url):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -86,14 +75,26 @@ def fetch_stat_from_google(query):
         for item in data["items"]:
             # Ensure the statistic contains a number
             if any(char.isdigit() for char in item["snippet"]):
-                domain = item["link"].split("//")[-1].split("/")[0].split('.')[-2]
-                trust_score = TRUST_SCORES.get(domain, 3)
                 results.append({
                     "stat": item["snippet"],
-                    "link": item["link"],
-                    "trust_score": trust_score
+                    "link": item["link"]
                 })
-    return sorted(results, key=lambda x: x["trust_score"], reverse=True)
+    return results
+
+def get_trust_score_with_gpt(stat):
+    try:
+        response = openai.ChatCompletion.create(
+          model="gpt-3.5-turbo",
+          messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Score this information from 1-10 on a scale of believability. 10 being highly believable and 1 being hardest to believe:\n\n{stat}"}
+            ]
+        )
+        score = int(response.choices[0].message['content'].strip())
+        return score
+    except Exception as e:
+        st.error(f"Error in get_trust_score_with_gpt: {e}")
+        return 5  # Default score
 
 # Streamlit layout and components
 c30, c31 = st.columns([10.5, 1])
@@ -112,15 +113,25 @@ if url:
         st.write(f"**Summarized Text:**\n\n{summarized_text[:500]}...")  # Displaying the first 500 characters
         st.markdown("---")
         queries = generate_queries_with_gpt(summarized_text)
+        displayed_links = set()  # To avoid repeated websites
+        count = 0
         for query in queries:
             stats_data = fetch_stat_from_google(query)
             for stat_data in stats_data:
-                st.markdown(f"**Statistic:** {stat_data['stat']}")
-                st.markdown(f"**Statistic URL:** [{stat_data['link']}]({stat_data['link']})")
-                st.markdown(f"**Trust Score:** {stat_data['trust_score']}/10")
-                example_use = re.sub(r'\d+', '', query)  # Remove numbers
-                st.markdown(f"**Example Use:** `{example_use} [source]({stat_data['link']})`")
-                st.markdown("---")
+                if stat_data["link"] not in displayed_links:
+                    displayed_links.add(stat_data["link"])
+                    trust_score = get_trust_score_with_gpt(stat_data["stat"])
+                    st.markdown(f"**Statistic:** {stat_data['stat']}")
+                    st.markdown(f"**Statistic URL:** [{stat_data['link']}]({stat_data['link']})")
+                    st.markdown(f"**Trust Score:** {trust_score}/10")
+                    example_use = re.sub(r'\d+', '', query)  # Remove numbers
+                    st.markdown(f"**Example Use:** `{example_use} [source]({stat_data['link']})`")
+                    st.markdown("---")
+                    count += 1
+                    if count >= 10:
+                        break
+            if count >= 10:
+                break
     else:
         st.error("Unable to extract content from the provided URL.")
 
