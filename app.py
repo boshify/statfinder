@@ -91,22 +91,33 @@ def get_webpage_content(url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.text
-    else:
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return response.text
+        else:
+            return None
+    except:
         return None
+
 
 def is_html(content):
     """
     Check if content seems to be HTML by looking for typical HTML tags.
     """
+    if content is None:
+        return False
+
     html_tags = ['<html', '<body', '<head', '<script', '<div', '<span', '<a']
     if any(tag in content.lower() for tag in html_tags):
         return True
     return False
 
+
 def extract_content_from_html(html_content):
+    if html_content is None:
+        return ""
+
     if not is_html(html_content):
         return ""
     
