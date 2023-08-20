@@ -4,7 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 
 # Set up the OpenAI API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_key = st.secrets["secrets"]["OPENAI_API_KEY"]
+
 
 # Google Search function
 def google_search(query, api_key, cse_id, **kwargs):
