@@ -2,7 +2,6 @@ import streamlit as st
 import openai
 from bs4 import BeautifulSoup
 import requests
-import random
 import re
 
 # Secrets
@@ -21,15 +20,6 @@ STATISTIC_PATTERNS = [
     r'1 of \d+',                      
     r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?', 
     r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',   
-]
-
-FUN_MESSAGES = [
-    "Calculating pixels...",
-    "Finding best statistics...",
-    "Analyzing content...",
-    "Thinking...",
-    "Brewing coffee...",
-    "AI magic in progress..."
 ]
 
 @st.cache(show_spinner=False)
@@ -64,33 +54,40 @@ def search_google(query):
     response = requests.get(url).json()
     return response.get('items', [{}])[0].get('link', '')
 
+def generate_example_usage(statistic, article_content):
+    prompt = f"Provide a sentence using the statistic '{statistic}' in the context of an article about '{article_content[:50]}'..."
+    response = openai.Completion.create(prompt=prompt, max_tokens=100)
+    return response.choices[0].text.strip()
+
+def stylish_box(statistic, url, example_use):
+    return f"""
+    <div style="
+        border: 2px solid #f1f1f1;
+        border-radius: 5px;
+        padding: 10px;
+        margin: 10px 0px;
+        box-shadow: 2px 2px 12px #aaa;">
+        <strong>Statistic:</strong> {statistic}<br>
+        <strong>Source:</strong> <a href='{url}'>{url}</a><br>
+        <strong>Example Use:</strong> {example_use}
+    </div>
+    """
+
 def main():
     st.title("StatGrabber 2.0")
     st.write("Enter a URL and discover amazing statistics!")
     url = st.text_input("Enter URL:")
 
     if url:
-        with st.spinner(random.choice(FUN_MESSAGES)):
-            html_content = fetch_web_content(url)
-            text_content = extract_html_content(html_content)
-            stats = find_statistics(text_content)
+        html_content = fetch_web_content(url)
+        text_content = extract_html_content(html_content)
+        stats = find_statistics(text_content)
 
-            if not stats:
-                st.warning("No statistics found in the provided URL.")
-                return
-
-            progress_bar = st.progress(0)
-            total_stats = len(stats)
-            
-            for idx, stat in enumerate(stats, 1):
-                search_query = f"statistics 2023 {stat}"
-                link = search_google(search_query)
-                if link:
-                    st.markdown(f"**{idx}. Statistic:** {stat} [Source]({link})")
-                else:
-                    st.markdown(f"**{idx}. Statistic:** {stat}")
-                
-                progress_bar.progress(idx/total_stats)
+        for idx, stat in enumerate(stats, 1):
+            search_query = f"statistics about {stat} related to {text_content[:50]}"
+            link = search_google(search_query)
+            example_use = generate_example_usage(stat, text_content)
+            st.markdown(stylish_box(stat, link, example_use), unsafe_allow_html=True)
 
     st.sidebar.header("About")
     st.sidebar.write("StatGrabber 2.0 is an enhanced AI-powered tool to help you quickly discover and cite statistics from your content.")
