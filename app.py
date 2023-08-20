@@ -11,15 +11,12 @@ import requests
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 
-# Debug step: Print the keys available in st.secrets
-st.write("Available keys in secrets:", list(st.secrets.keys()))
-
 # Set up the OpenAI API key
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_key = st.secrets["secrets"]["OPENAI_API_KEY"]
 
 # Set up the Google Custom Search API credentials
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-CSE_ID = st.secrets["CSE_ID"]
+GOOGLE_API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
+CSE_ID = st.secrets["secrets"]["CSE_ID"]
 
 def extract_content_from_url(url):
     try:
