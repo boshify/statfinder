@@ -24,14 +24,15 @@ def extract_headings(url):
     return headings
 
 def rank_headings_for_statistics(headings):
-    prompt = "Rank the following headings based on their relevance for adding a statistic from a reputable source:\n"
+    prompt = "Given the following headings from an article, rank the top 10 headings where adding a statistic from a reputable source would be most beneficial:\n"
     for idx, heading in enumerate(headings):
         prompt += f"{idx + 1}. {heading}\n"
+    prompt += "\nRank the headings by number (e.g., 1, 3, 5):"
 
     response = openai.Completion.create(
       engine="davinci",
       prompt=prompt,
-      max_tokens=500,
+      max_tokens=50,  # Limiting the number of tokens
       n=1,
       stop=None,
       temperature=0.5
@@ -40,18 +41,17 @@ def rank_headings_for_statistics(headings):
     st.write("Model's Output:")  # Debugging line
     st.write(response.choices[0].text.strip())  # Debugging line
 
-    ranked_output = response.choices[0].text.strip().split("\n")
-    
-    # Extract the original headings from the ranked list
+    ranked_output = response.choices[0].text.strip().split(",")  # Assuming the model returns a comma-separated list of numbers
     ranked_headings = []
-    for line in ranked_output:
-        index_str = line.split('.')[0]
+    for index_str in ranked_output:
+        index_str = index_str.strip()
         if index_str.isdigit():
             index = int(index_str) - 1
             if 0 <= index < len(headings):
                 ranked_headings.append(headings[index])
 
     return ranked_headings[:10]
+
 
 
 
