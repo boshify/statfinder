@@ -192,7 +192,7 @@ if url:
                 f"<strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a> <br> " +
                 f"<strong>Example Use:</strong> {example_use}"
             ), unsafe_allow_html=True)
-            if st.button(f"Copy '{statistic}' to Clipboard"):
+            if st.button(f"Copy '{statistic}' to Clipboard", key="unique_key_for_copy_to_clipboard_button"):
                 st.info("Text displayed above. Use Ctrl+C to copy!")
     else:
         st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
