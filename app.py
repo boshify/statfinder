@@ -68,17 +68,15 @@ st.title("StatGrabber")
 st.write("Enter a URL and find statistics you can link to quickly!")
 url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
 
-# List of fun messages for the spinner
 fun_messages = [
-    "calculating all the pixels...",
-    "translating to Martian...",
-    "checking for gremlins...",
-    "waiting for the stars to align...",
-    "flipping bits...",
-    "at the speed of light..."
+    "Calculating all the pixels...",
+    "Finding the best statistics...",
+    "Analyzing the content...",
+    "Thinking really hard...",
+    "Almost there...",
+    "Just a moment more..."
 ]
 
-# Function to get webpage content
 def get_webpage_content(url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -89,17 +87,22 @@ def get_webpage_content(url):
     else:
         return None
 
-# Function to extract content from the HTML
 def extract_content_from_html(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
-    # This is just a basic extraction, and might need adjustments
     for script in soup(["script", "style"]):
         script.extract()
     return " ".join(soup.stripped_strings)
 
+def show_loading_message(duration=6):  # default duration to 6 seconds, adjust as needed
+    loading_message_placeholder = st.empty()
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        loading_message_placeholder.text(random.choice(fun_messages))
+        time.sleep(2)
 
 def process_url(url):
-    with st.spinner(random.choice(fun_messages)):
+    with st.spinner():
+        show_loading_message()
         html_content = get_webpage_content(url)
         if html_content:
             text_content = extract_content_from_html(html_content)
@@ -107,29 +110,23 @@ def process_url(url):
             aggregated_points = []
             chunks = [chunk for chunk in chunks if len(chunk.split()) > 5]
             
-            # Progress bar demo
             progress = st.progress(0)
             total_chunks = len(chunks)
             for idx, text_chunk in enumerate(chunks, 1):
                 response = openai.Completion.create(
                     engine="davinci",
                     prompt=f"Provide concise one-sentence summaries for the main ideas in the following content:\n{text_chunk}",
-                    max_tokens=150  # adjust as needed
+                    max_tokens=150
                 )
-
                 key_points = response.choices[0].text.strip().split("\n")
                 min_length = 5
                 max_length = 150
                 key_points = [point for point in key_points if min_length <= len(point.split()) <= max_length]
                 aggregated_points.extend(key_points)
-                
-                # Update progress bar
                 progress.progress(int((idx/total_chunks) * 100))
-
-            # Display the top 10 key points
+            
             for idx, point in enumerate(aggregated_points[:10], 1):
                 st.markdown(stylish_box(f"{idx}. {point}"), unsafe_allow_html=True)
-
         else:
             st.write("Failed to fetch the content.")
 
