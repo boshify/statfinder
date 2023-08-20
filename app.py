@@ -36,15 +36,14 @@ def extract_text_from_url(url):
 
 def generate_queries_with_gpt(text):
     try:
-        response = openai.Completion.create(
-          engine="gpt-3.5-turbo",
-          prompt=f"From the following content, generate 10 sentences where a statistic should be added:\n\n{text}",
-          max_tokens=500,
-          n=1,
-          stop=None,
-          temperature=0.7
+        response = openai.ChatCompletion.create(
+          model="gpt-3.5-turbo",
+          messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"From the following content, generate 10 sentences where a statistic should be added:\n\n{text}"}
+            ]
         )
-        queries = response.choices[0].text.strip().split('\n')
+        queries = response.choices[0].message['content'].strip().split('\n')
         return queries
     except Exception as e:
         st.error(f"Error in generate_queries_with_gpt: {e}")
