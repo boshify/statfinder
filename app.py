@@ -2,11 +2,14 @@ import streamlit as st
 import requests
 import openai
 import re
+import openai
+
+# Set the OpenAI API key
+openai.api_key = st.secrets["secrets"]["OPENAI_API_KEY"]
 
 # Assuming you have set up the API keys and CSE_ID as before
 API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
 CSE_ID = st.secrets["secrets"]["CSE_ID"]
-OPENAI_API_KEY = st.secrets["secrets"]["OPENAI_API_KEY"]
 
 
 def extract_key_points_from_text(text):
