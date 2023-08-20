@@ -108,6 +108,14 @@ def summarize_text(text, max_tokens=10):
     )
     return response.choices[0].text.strip()
 
+def is_valid_content(sentence):
+    # Check if the content is likely meaningful
+    if len(sentence.split()) < 5:  # Too short
+        return False
+    if any(symbol in sentence for symbol in ['{', '}', '%', '=']):  # Likely code or gibberish
+        return False
+    return True
+
 def process_url(url):
     with st.spinner():
         show_loading_message()
@@ -116,7 +124,7 @@ def process_url(url):
             text_content = extract_content_from_html(html_content)
             chunks = chunk_text(text_content)
             aggregated_points = []
-            chunks = [chunk for chunk in chunks if len(chunk.split()) > 5]
+            chunks = [chunk for chunk in chunks if is_valid_content(chunk)]
             
             progress = st.progress(0)
             total_chunks = len(chunks)
@@ -133,15 +141,18 @@ def process_url(url):
                 aggregated_points.extend(key_points)
                 progress.progress(int((idx/total_chunks) * 100))
             
-            # Further summarize each point
+            # Further summarize each point (with fallback)
             for idx, point in enumerate(aggregated_points[:10], 1):
                 summarized_point = summarize_text(point)
+                if not is_valid_content(summarized_point):
+                    summarized_point = point  # Fallback to original summary if the new one seems gibberish
                 st.markdown(stylish_box(f"{idx}. {summarized_point}"), unsafe_allow_html=True)
         else:
             st.write("Failed to fetch the content.")
 
 if st.button("Go!"):
     process_url(url)
+
 
 # Footer (About Info)
 st.image("https://jonathanboshoff.com/wp-content/uploads/2021/01/Jonathan-Boshoff-2.png", width=50)
