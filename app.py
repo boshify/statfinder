@@ -23,7 +23,14 @@ def extract_headings(url):
     headings = [tag.text.strip() for tag in soup.find_all(['h1', 'h2', 'h3'])]
     return headings
 
-def evaluate_heading_relevance(heading):
+def evaluate_heading_relevance(heading, level):
+    # Weigh the heading based on its level
+    weight = 1
+    if level == 'h2':
+        weight = 1.5
+    elif level == 'h3':
+        weight = 2
+
     prompt = f"On a scale of 1 to 10, rate the suitability of the heading '{heading}' for adding a statistic from a reputable source (10 being highly suitable)."
     response = openai.Completion.create(
       engine="davinci",
@@ -35,16 +42,20 @@ def evaluate_heading_relevance(heading):
     )
     score = response.choices[0].text.strip()
     try:
-        return int(score)
+        return int(score) * weight
     except ValueError:
         return 0
 
 def rank_headings_for_statistics(headings):
-    unique_headings = list(set(headings))  # Ensure unique headings
-    scores = [(heading, evaluate_heading_relevance(heading)) for heading in unique_headings]
+    # Exclude generic headings
+    exclude_list = ["Platform", "Footer", "Contact Us", "Learn", "Privacy & Terms"]
+    unique_headings = list(set(headings) - set(exclude_list))
+
+    scores = [(heading, evaluate_heading_relevance(heading, level)) for heading, level in unique_headings]
     # Sort by scores in descending order
     sorted_headings = [item[0] for item in sorted(scores, key=lambda x: x[1], reverse=True)]
     return sorted_headings[:10]
+
 
 
 st.title("Top 10 Headings for Statistics")
