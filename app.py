@@ -40,12 +40,34 @@ def get_insight_from_openai(link):
     try:
         response = openai.Completion.create(
           engine="davinci",
-          prompt=f"Provide a brief insight about this link: {link}",
-          max_tokens=100
+          prompt=f"Summarize the main topic or content of this link: {link}",
+          max_tokens=150,
+          n=1,
+          stop=None,
+          temperature=0.7
         )
-        return response.choices[0].text.strip()
+        insight = response.choices[0].text.strip()
+        # Ensure the insight is not too short
+        if len(insight.split()) < 5:
+            return "Insight not available."
+        return insight
     except:
         return "Unable to fetch insight."
+
+# ... [rest of the code remains the same]
+
+for s in stats:
+    if "Error" in s['stat']:
+        st.error(s['stat'])  # Display the error message
+    else:
+        insight = get_insight_from_openai(s['link'])
+        truncated_link = (s['link'][:50] + '...') if len(s['link']) > 50 else s['link']
+        st.markdown(f"**Stat:** {s['stat']}")
+        st.markdown(f"**Link:** [{truncated_link}]({s['link']})")
+        st.markdown(f"**Insight:** {insight}")
+        st.markdown(f"**Example Usage:** {s['stat']} [source]({s['link']})")
+        st.markdown("---")
+
 
 # Streamlit layout and components
 c30, c31 = st.columns([10.5, 1])
