@@ -1,97 +1,90 @@
 import streamlit as st
-import openai
-from bs4 import BeautifulSoup
 import requests
-import re
+from bs4 import BeautifulSoup
+import openai
 
-# Secrets
-secrets = st.secrets["secrets"]
-GOOGLE_API_KEY = secrets["GOOGLE_API_KEY"]
-CSE_ID = secrets["CSE_ID"]
-OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
+# Configuration
+OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
+GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"
+CSE_ID = "YOUR_CSE_ID"
 
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
 
-# Regex patterns for potential statistics
-STATISTIC_PATTERNS = [
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',  
-    r'1 in \d+',                      
-    r'1 of \d+',                      
-    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?', 
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',   
-]
+def stylish_box(content):
+    """Function to return stylish box for Streamlit"""
+    return f"""
+    <div style="border:1px solid #eee; padding:10px; border-radius:5px; box-shadow:2px 2px 2px #aaa;">
+        {content}
+    </div>
+    """
 
-@st.cache(show_spinner=False)
-def fetch_web_content(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
+def get_webpage_content(url):
+    """Fetch the webpage content."""
     try:
-        response = requests.get(url, headers=headers)
-        return response.text if response.status_code == 200 else None
-    except:
-        return None
-
-@st.cache(show_spinner=False)
-def extract_html_content(html_content):
-    if not html_content:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.text
+    except requests.RequestException:
+        st.warning("Failed to fetch the webpage content.")
         return ""
+
+def extract_content_from_html(html_content):
+    """Extract main content from the HTML."""
     soup = BeautifulSoup(html_content, 'html.parser')
     for script in soup(["script", "style"]):
         script.extract()
     return " ".join(soup.stripped_strings)
 
-def find_statistics(text_content):
-    stats = []
-    for pattern in STATISTIC_PATTERNS:
-        matches = re.findall(pattern, text_content)
-        stats.extend(matches)
-    return stats
+def summarize_content_with_gpt4(text_content):
+    """Summarize content with GPT-4."""
+    response = openai.Completion.create(
+        model="gpt-4",
+        prompt=f"Provide concise summaries for the main ideas in the following content:\n{text_content}",
+        max_tokens=200
+    )
+    return response.choices[0].text.strip().split("\n")
 
-def search_google(query):
+def search_google_for_statistic(query):
+    """Search Google for a statistic related to the query."""
     url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API_KEY}&cx={CSE_ID}"
     response = requests.get(url).json()
-    return response.get('items', [{}])[0].get('link', '')
+    return response['items'][0]['link'] if 'items' in response else None
 
-def generate_example_usage(statistic, article_content):
-    prompt = f"Provide a sentence using the statistic '{statistic}' in the context of an article about '{article_content[:50]}'..."
-    response = openai.Completion.create(prompt=prompt, max_tokens=100)
+def generate_example_usage(statistic, context):
+    """Generate example usage for the statistic."""
+    response = openai.Completion.create(
+        model="gpt-4",
+        prompt=f"Given the statistic '{statistic}', provide an example sentence using it in the context of this topic: '{context}'",
+        max_tokens=100
+    )
     return response.choices[0].text.strip()
-
-def stylish_box(statistic, url, example_use):
-    return f"""
-    <div style="
-        border: 2px solid #f1f1f1;
-        border-radius: 5px;
-        padding: 10px;
-        margin: 10px 0px;
-        box-shadow: 2px 2px 12px #aaa;">
-        <strong>Statistic:</strong> {statistic}<br>
-        <strong>Source:</strong> <a href='{url}'>{url}</a><br>
-        <strong>Example Use:</strong> {example_use}
-    </div>
-    """
 
 def main():
     st.title("StatGrabber 2.0")
     st.write("Enter a URL and discover amazing statistics!")
     url = st.text_input("Enter URL:")
 
-    if url:
-        html_content = fetch_web_content(url)
-        text_content = extract_html_content(html_content)
-        stats = find_statistics(text_content)
-
-        for idx, stat in enumerate(stats, 1):
-            search_query = f"statistics about {stat} related to {text_content[:50]}"
-            link = search_google(search_query)
-            example_use = generate_example_usage(stat, text_content)
-            st.markdown(stylish_box(stat, link, example_use), unsafe_allow_html=True)
-
-    st.sidebar.header("About")
-    st.sidebar.write("StatGrabber 2.0 is an enhanced AI-powered tool to help you quickly discover and cite statistics from your content.")
-    st.sidebar.write("This tool leverages GPT-4 and other models to analyze content and provide relevant statistics.")
+    if st.button("Grab Stats"):
+        html_content = get_webpage_content(url)
+        text_content = extract_content_from_html(html_content)
+        key_points = summarize_content_with_gpt4(text_content)
+        
+        for key_point in key_points:
+            search_query = f"statistics related to {key_point}"
+            stat_url = search_google_for_statistic(search_query)
+            
+            if stat_url:
+                stat_text, _ = extract_content_from_html(get_webpage_content(stat_url))
+                example_use = generate_example_usage(stat_text, text_content)
+                
+                content = f"""
+                <b>Statistic:</b> {stat_text}<br>
+                <b>URL:</b> {stat_url}<br>
+                <b>Example Use:</b> {example_use}<br>
+                <button onclick="navigator.clipboard.writeText('{stat_text} - Source: {stat_url}')">Copy to clipboard</button>
+                """
+                st.markdown(stylish_box(content), unsafe_allow_html=True)
 
 if __name__ == '__main__':
     main()
