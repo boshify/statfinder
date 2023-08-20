@@ -191,33 +191,31 @@ def process_url(url):
         
         progress = st.progress(0)
         total_chunks = len(chunks)
-        aggregated_points = []
-        for idx, point in enumerate(aggregated_points[:10], 1):
-    
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
-        ]
-    )
+        for idx, point in enumerate(chunks[:10], 1):  # iterating over 'chunks' instead of 'aggregated_points'
+            
+            # Properly indented the API call and removed the disconnected piece of code
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
+                ]
+            )
+            
+            summarized_point = response.choices[0]["message"]["content"].strip()
+            summarized_point = point if not is_valid_content(summarized_point) else summarized_point
 
-                {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
-            ]
-        )
-        summarized_point = response.choices[0]["message"]["content"].strip()
-        summarized_point = point if not is_valid_content(summarized_point) else summarized_point
+            # Extract keywords from the summarized content
+            keywords = extract_keywords(summarized_point)
 
-        # Extract keywords from the summarized content
-        keywords = extract_keywords(summarized_point)
+            time.sleep(1.5)
+            search_query = f"statistics 2023 {summarized_point}"
+            # Passing keywords to extract_statistic_from_url
+            statistic, stat_url = extract_statistic_from_url(search_google(search_query), keywords)
 
-        time.sleep(1.5)
-        search_query = f"statistics 2023 {summarized_point}"
-        # Passing keywords to extract_statistic_from_url
-        statistic, stat_url = extract_statistic_from_url(search_google(search_query), keywords)
-
-        if statistic:
-            content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to Clipboard</button>"
-            st.markdown(stylish_box(content), unsafe_allow_html=True)
+            if statistic:
+                content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to Clipboard</button>"
+                st.markdown(stylish_box(content), unsafe_allow_html=True)
+        progress.increment(1.0 / total_chunks)  # Assuming you want to increment the progress for each chunk.
     else:
         st.error("Error fetching the webpage content. Please ensure the URL is correct and try again.")
 
