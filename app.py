@@ -11,6 +11,9 @@ import requests
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 
+# Debug step: Print the keys available in st.secrets
+st.write("Available keys in secrets:", list(st.secrets.keys()))
+
 # Set up the OpenAI API key
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
