@@ -1,5 +1,7 @@
 import streamlit as st
 import openai
+import requests
+from bs4 import BeautifulSoup
 
 # Load secrets
 secrets = st.secrets["secrets"]
@@ -28,11 +30,6 @@ st.markdown(
             border-radius: 50%;
             margin-top: 30px;
         }
-        #infoBox {
-            border: 1px solid white;  # Adjusting to match the theme
-            padding: 10px;
-            margin-top: 10px;
-        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -43,22 +40,42 @@ st.write("Enter a URL and find statistics you can link to quickly!")
 
 url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
 
-if st.button("Go!"):
-    # Placeholder for your URL processing logic, or OpenAI API calls
-    st.write("Processing the URL...")
+def get_webpage_content(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.text
+    else:
+        return None
 
-# Adding the information box
-st.markdown(
-    """
-    <div id="infoBox">
-      <h2>About the OpenAI API</h2>
-      To use a GPT model via the OpenAI API, you’ll send a request containing the inputs and your API key, 
-      and receive a response containing the model’s output...
-      <!-- add all the relevant information provided previously here -->
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+def extract_content_from_html(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    for script in soup(['script', 'style']):
+        script.extract()  # Remove script and style tags
+    text = soup.get_text()
+    # Split the text by lines and remove empty lines
+    lines = (line.strip() for line in text.splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    text = '\n'.join(chunk for chunk in chunks if chunk)
+    return text
+
+if st.button("Go!"):
+    html_content = get_webpage_content(url)
+    if html_content:
+        text_content = extract_content_from_html(html_content)
+        # Now, process the text_content with the OpenAI API
+        response = openai.Completion.create(
+          engine="davinci",
+          prompt=f"Extract the 10 key points from the following content:\n{text_content}",
+          max_tokens=500
+        )
+        key_points = response.choices[0].text.strip().split("\n")[:10]
+        for idx, point in enumerate(key_points, 1):
+            st.write(f"{idx}. {point}")
+    else:
+        st.write("Failed to fetch the content.")
 
 # Spacing
 for _ in range(3):
