@@ -105,10 +105,11 @@ if st.button("Go!"):
         aggregated_points = []
         for text_chunk in chunks:
             response = openai.Completion.create(
-                engine="davinci",
-                prompt=f"Extract key points from the following content:\n{text_chunk}",
-                max_tokens=150  # adjust as needed
+            engine="davinci",
+            prompt=f"Summarize the following content in one sentence each:\n{text_chunk}",
+            max_tokens=150  # adjust as needed
             )
+
             key_points = response.choices[0].text.strip().split("\n")
             aggregated_points.extend(key_points)
         # Display the top 10 key points
