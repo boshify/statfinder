@@ -3,12 +3,14 @@ import requests
 import openai
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 # Accessing the secrets
 GOOGLE_API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
 CSE_ID = st.secrets["secrets"]["CSE_ID"]
 OPENAI_API_KEY = st.secrets["secrets"]["OPENAI_API_KEY"]
 
+openai.api_key = OPENAI_API_KEY
 
 # Extract key points from text using OpenAI
 def extract_key_points_from_text(text):
@@ -21,10 +23,13 @@ def extract_key_points_from_text(text):
 
 # Fetch statistics related to the key points
 def fetch_statistics(query):
-    service = build("customsearch", "v1", developerKey=GOOGLE_API_KEY)
-    res = service.cse().list(q=query, cx=CSE_ID, num=1).execute()
-    return res['items'][0] if 'items' in res else None
-
+    try:
+        service = build("customsearch", "v1", developerKey=GOOGLE_API_KEY)
+        res = service.cse().list(q=query, cx=CSE_ID, num=1).execute()
+        return res['items'][0] if 'items' in res else None
+    except HttpError as e:
+        st.write("Error occurred:", e)
+        return None
 
 # Streamlit UI
 st.title("URL Statistics Enhancer")
