@@ -5,7 +5,6 @@ import requests
 import time
 import random
 import re
-import lxml
 
 # Load secrets
 secrets = st.secrets["secrets"]
@@ -26,6 +25,7 @@ STATISTIC_PATTERNS = [
 ]
 
 def chunk_text(text, max_length=1500):
+    """Breaks the text into chunks that are less than the specified max length."""
     sentences = text.split('.')
     chunks = []
     chunk = ""
@@ -40,6 +40,7 @@ def chunk_text(text, max_length=1500):
     return chunks
 
 def stylish_box(content):
+    """Styles a content box."""
     box_style = """
     <div style="
         border: 2px solid #f1f1f1;
@@ -89,8 +90,9 @@ fun_messages = [
 ]
 
 def get_webpage_content(url):
+    """Fetches the content from a URL."""
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        "User-Agent": "Mozilla/5.0"
     }
     try:
         response = requests.get(url, headers=headers)
@@ -99,12 +101,14 @@ def get_webpage_content(url):
         return None
 
 def extract_content_from_html(html_content):
-    soup = BeautifulSoup(html_content, 'html.parser')
+    """Extracts meaningful content from HTML."""
+    soup = BeautifulSoup(html_content, 'lxml')
     for script in soup(["script", "style"]):
         script.extract()
     return " ".join(soup.stripped_strings)
 
 def show_loading_message(duration=6):
+    """Shows a loading message to the user for the specified duration."""
     loading_message_placeholder = st.empty()
     start_time = time.time()
     while time.time() - start_time < duration:
@@ -112,6 +116,7 @@ def show_loading_message(duration=6):
         time.sleep(2)
 
 def search_google(query):
+    """Uses Google Custom Search to find a related link."""
     url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API_KEY}&cx={CSE_ID}"
     response = requests.get(url).json()
     if 'items' in response:
@@ -119,6 +124,7 @@ def search_google(query):
     return None
 
 def extract_statistic_from_url(url):
+    """Extracts a statistic from a URL."""
     page_content = get_webpage_content(url)
     if not page_content:
         return None, url
@@ -128,11 +134,11 @@ def extract_statistic_from_url(url):
         for match in matches:
             start_idx = page_text.find(match)
             surrounding_text = page_text[max(0, start_idx - 60):min(start_idx + len(match) + 60, len(page_text))]
-            if len(surrounding_text.split()) > 5:
-                return surrounding_text.strip(), url
+            return surrounding_text.strip(), url
     return None, url
 
 def process_url(url):
+    """Processes a URL to extract and summarize its content."""
     with st.spinner():
         show_loading_message()
         html_content = get_webpage_content(url)
@@ -145,12 +151,13 @@ def process_url(url):
             aggregated_points = []
             
             for idx, text_chunk in enumerate(chunks):
-                response = openai.Completion.create(
+                response = openai.ChatCompletion.create(  # Corrected to use ChatCompletion
                     model="gpt-3.5-turbo",
-                    prompt=f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}",
-                    max_tokens=150
+                    messages=[
+                        {"role": "user", "content": f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}"}
+                    ]
                 )
-                key_points = response.choices[0].text.strip().split("\n")
+                key_points = response.choices[0]["message"]["content"].strip().split("\n")
                 aggregated_points.extend(key_points)
                 progress.progress((idx+1)/total_chunks)
             
