@@ -2,7 +2,6 @@ import streamlit as st
 import openai
 from bs4 import BeautifulSoup
 import requests
-from functools import lru_cache
 import time
 import random
 import re
@@ -19,14 +18,41 @@ openai.api_key = OPENAI_API_KEY
 
 # Regex patterns to identify sentences with potential statistics
 STATISTIC_PATTERNS = [
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',  # Matches percentages
-    r'1 in \d+',                      # Matches '1 in 10'
-    r'1 of \d+',                      # Matches '1 of 10'
-    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?',  # Matches dollar values
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',    # Matches decimal and non-decimal numbers
+    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',  
+    r'1 in \d+',                      
+    r'1 of \d+',                      
+    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?',  
+    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',    
 ]
 
-# Styling and layout
+def chunk_text(text, max_length=1500):
+    sentences = text.split('.')
+    chunks = []
+    chunk = ""
+    for sentence in sentences:
+        if len(chunk) + len(sentence) < max_length:
+            chunk += sentence + "."
+        else:
+            chunks.append(chunk)
+            chunk = sentence + "."
+    if chunk:
+        chunks.append(chunk)
+    return chunks
+
+def stylish_box(content):
+    box_style = """
+    <div style="
+        border: 2px solid #f1f1f1;
+        border-radius: 5px;
+        padding: 10px;
+        margin: 10px 0px;
+        box-shadow: 2px 2px 12px #aaa;">
+        {content}
+    </div>
+    """
+    return box_style.format(content=content)
+
+# Styling
 st.markdown(
     """
     <style>
@@ -49,7 +75,19 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-@lru_cache(maxsize=None)
+st.title("StatGrabber")
+st.write("Enter a URL and find statistics you can link to quickly!")
+url = st.text_input("Enter URL:")
+
+fun_messages = [
+    "Calculating all the pixels...",
+    "Finding the best statistics...",
+    "Analyzing the content...",
+    "Thinking really hard...",
+    "Grabbing some coffee...",
+    "Doing some cool AI stuff..."
+]
+
 def get_webpage_content(url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -76,14 +114,18 @@ def extract_content_from_html(html_content):
         script.extract()
     return " ".join(soup.stripped_strings)
 
+def show_loading_message(duration=6):
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        st.text(random.choice(fun_messages))
+        time.sleep(2)
+
+def is_valid_content(sentence):
+    return len(sentence.split()) >= 5 and all(symbol not in sentence for symbol in ['{', '}', '%', '='])
+
 def search_google(query):
-    url = "https://www.googleapis.com/customsearch/v1"
-    params = {
-        'q': query,
-        'key': GOOGLE_API_KEY,
-        'cx': CSE_ID
-    }
-    response = requests.get(url, params=params).json()
+    url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API_KEY}&cx={CSE_ID}"
+    response = requests.get(url).json()
     return response['items'][0]['link']
 
 def extract_statistic_from_url(url):
@@ -92,32 +134,55 @@ def extract_statistic_from_url(url):
         return None, url
     page_text = extract_content_from_html(page_content)
     
+    potential_statistics = []
+
     for pattern in STATISTIC_PATTERNS:
-        matches = re.findall(pattern, page_text)
+        matches = re.finditer(pattern, page_text)
         for match in matches:
-            start_idx = page_text.find(match)
-            surrounding_text = page_text[max(0, start_idx - 60):min(start_idx + len(match) + 60, len(page_text))]
+            start_idx = match.start()
+            surrounding_text = page_text[max(0, start_idx - 60):min(start_idx + match.end() + 60, len(page_text))]
             if len(surrounding_text.split()) > 5:
-                return surrounding_text.strip(), url
+                potential_statistics.append(surrounding_text.strip())
+
+    if potential_statistics:
+        return potential_statistics[0], url
     return None, url
 
 def process_url(url):
     with st.spinner():
+        show_loading_message()
         html_content = get_webpage_content(url)
         if html_content:
             text_content = extract_content_from_html(html_content)
-            chunks = chunk_text(text_content)
-            aggregated_points = analyze_content(chunks)
+            chunks = [chunk for chunk in chunk_text(text_content) if is_valid_content(chunk)]
+            
+            progress = st.progress(0)
+            total_chunks = len(chunks)
+            aggregated_points = []
+            
+            for idx, text_chunk in enumerate(chunks):
+                with openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "user", "content": f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}"}
+                    ]
+                ) as response:
+                    key_points = response.choices[0]["message"]["content"].strip().split("\n")
+                    key_points = [point for point in key_points if 5 <= len(point.split()) <= 150]
+                    aggregated_points.extend(key_points)
+                progress.progress(int((idx/total_chunks) * 100))
             
             for idx, point in enumerate(aggregated_points[:10], 1):
-                response = openai.ChatCompletion.create(
+                with openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
                     ]
-                )
-                summarized_point = response.choices[0]["message"]["content"].strip()
-                summarized_point = point if not is_valid_content(summarized_point) else summarized_point
+                ) as response:
+                    summarized_point = response.choices[0]["message"]["content"].strip()
+                    summarized_point = point if not is_valid_content(summarized_point) else summarized_point
+
+                time.sleep(1.5)
                 search_query = f"statistics 2023 {summarized_point}"
                 statistic, stat_url = extract_statistic_from_url(search_google(search_query))
                 
@@ -129,11 +194,6 @@ def process_url(url):
                     st.markdown(stylish_box(content), unsafe_allow_html=True)
         else:
             st.error("Unable to fetch the content from the provided URL. Please check if the URL is correct and try again.")
-
-# The main app
-st.title("StatGrabber")
-st.write("Enter a URL and find statistics you can link to quickly!")
-url = st.text_input("Enter URL:")
 
 if url:
     process_url(url)
