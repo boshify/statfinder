@@ -37,11 +37,12 @@ def rank_headings_for_statistics(headings):
       temperature=0.5
     )
 
-    ranked_headings = response.choices[0].text.strip().split("\n")
+    ranked_output = response.choices[0].text.strip().split("\n")
     # Extract the original headings from the ranked list
-    ranked_headings = [headings[int(line.split('.')[0]) - 1] for line in ranked_headings if line.split('.')[0].isdigit()]
+    ranked_headings = [headings[int(line.split('.')[0]) - 1] for line in ranked_output if line.split('.')[0].isdigit()]
 
     return ranked_headings[:10]
+
 
 st.title("Top 10 Headings for Statistics")
 
