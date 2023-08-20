@@ -28,6 +28,11 @@ st.markdown(
             border-radius: 50%;
             margin-top: 30px;
         }
+        #infoBox {
+            border: 1px solid white;  # Adjusting to match the theme
+            padding: 10px;
+            margin-top: 10px;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -39,12 +44,25 @@ st.write("Enter a URL and find statistics you can link to quickly!")
 url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
 
 if st.button("Go!"):
-    st.write("test is good")
+    # Placeholder for your URL processing logic, or OpenAI API calls
+    st.write("Processing the URL...")
+
+# Adding the information box
+st.markdown(
+    """
+    <div id="infoBox">
+      <h2>About the OpenAI API</h2>
+      To use a GPT model via the OpenAI API, you’ll send a request containing the inputs and your API key, 
+      and receive a response containing the model’s output...
+      <!-- add all the relevant information provided previously here -->
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Spacing
-st.write("")
-st.write("")
-st.write("")
+for _ in range(3):
+    st.write("")
 
 # Footer (About Info)
 st.image("https://jonathanboshoff.com/wp-content/uploads/2021/01/Jonathan-Boshoff-2.png", width=50)
