@@ -33,15 +33,14 @@ def extract_text_from_url(url):
 
 def summarize_text_with_gpt(text):
     try:
-        response = openai.Completion.create(
+        response = openai.ChatCompletion.create(
           model="gpt-3.5-turbo",
-          prompt=f"Summarize the following content:\n\n{text}",
-          max_tokens=1000,
-          n=1,
-          stop=None,
-          temperature=0.7
+          messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Summarize the following content:\n\n{text}"}
+            ]
         )
-        return response.choices[0].text.strip()
+        return response.choices[0].message['content'].strip()
     except Exception as e:
         st.error(f"Error in summarize_text_with_gpt: {e}")
         return text
@@ -90,7 +89,7 @@ url = st.text_input('Insert the URL you want to enhance with statistics:')
 if url:
     text = extract_text_from_url(url)
     if text:
-        summarized_text = summarize_text_with_gpt(text)
+        summarized_text = summarize_text_with_gpt(text[:2000])  # Limiting the text to the first 2000 characters
         st.write(f"Summarized Text: {summarized_text[:500]}...")  # Displaying the first 500 characters
         queries = generate_queries_with_gpt(summarized_text)
         for query in queries:
