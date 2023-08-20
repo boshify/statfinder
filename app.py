@@ -22,8 +22,8 @@ def extract_content(url):
     paragraphs = [p.text.strip() for p in soup.find_all('p') if len(p.text.split()) > 5]  # Filter short paragraphs
     return paragraphs
 
-def is_suitable_for_statistic(content):
-    prompt = f"Does the content '{content}' seem like a good place to add a statistic? (Yes/No)"
+def suitability_score_for_statistic(content):
+    prompt = f"On a scale of 1 to 10, rate the suitability of the content for adding a statistic: '{content}'"
     response = openai.Completion.create(
       engine="davinci",
       prompt=prompt,
@@ -32,11 +32,17 @@ def is_suitable_for_statistic(content):
       stop=None,
       temperature=0.5
     )
-    return response.choices[0].text.strip().lower() == "yes"
+    score = response.choices[0].text.strip()
+    try:
+        return int(score)
+    except ValueError:
+        return 0
 
 def rank_content_for_statistics(contents):
-    suitable_contents = [content for content in contents if is_suitable_for_statistic(content)]
-    return suitable_contents[:10]  # Returns top 10 suitable contents
+    scored_contents = [(content, suitability_score_for_statistic(content)) for content in contents]
+    sorted_scored_contents = sorted(scored_contents, key=lambda x: x[1], reverse=True)
+    top_contents = [item[0] for item in sorted_scored_contents[:10]]
+    return top_contents
 
 # Streamlit UI
 st.title("Top 10 Content Placements for Statistics")
