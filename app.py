@@ -90,8 +90,12 @@ def get_trust_score_with_gpt(stat):
                 {"role": "user", "content": f"Score this information from 1-10 on a scale of believability. 10 being highly believable and 1 being hardest to believe:\n\n{stat}"}
             ]
         )
-        score = int(response.choices[0].message['content'].strip())
-        return score
+        score_text = response.choices[0].message['content'].strip()
+        score = re.search(r"\d+", score_text)
+        if score:
+            return int(score.group())
+        else:
+            return 5  # Default score if no number is found
     except Exception as e:
         st.error(f"Error in get_trust_score_with_gpt: {e}")
         return 5  # Default score
