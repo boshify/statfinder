@@ -5,9 +5,9 @@ from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 
 # Accessing the secrets
-API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
+GOOGLE_API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
 CSE_ID = st.secrets["secrets"]["CSE_ID"]
-openai.api_key = st.secrets["secrets"]["OPENAI_API_KEY"]
+OPENAI_API_KEY = st.secrets["secrets"]["OPENAI_API_KEY"]
 
 
 # Extract key points from text using OpenAI
