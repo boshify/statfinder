@@ -4,7 +4,10 @@ import requests
 from bs4 import BeautifulSoup
 
 # Initialize OpenAI API
-openai.api_key = st.secrets["openai"]["api_key"]
+try:
+    openai.api_key = st.secrets["openai_api_key"]
+except KeyError:
+    st.error("Please set up the OpenAI API key in your secrets.")
 
 # Streamlit Layout
 st.title("URL Statistics Enhancer")
@@ -47,7 +50,7 @@ def generate_queries_with_gpt(text):
 
 def fetch_stat_from_google(query):
     try:
-        search_url = f"https://www.googleapis.com/customsearch/v1?q={query} statistics&key={st.secrets['google']['api_key']}&cx={st.secrets['google']['cse_id']}"
+        search_url = f"https://www.googleapis.com/customsearch/v1?q={query} statistics&key={st.secrets['google_api_key']}&cx={st.secrets['google_cse_id']}"
         response = requests.get(search_url).json()
         stats = []
         for item in response['items']:
