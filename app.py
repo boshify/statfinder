@@ -28,33 +28,24 @@ st.markdown(
             border-radius: 50%;
             margin-top: 30px;
         }
-        .footer {
-            position: absolute;
-            bottom: 5%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 st.title("StatGrabber")
-st.description("Enter a URL and find statistics you can link to quickly!")
+st.write("Enter a URL and find statistics you can link to quickly!")
 
 url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
 
 if st.button("Go!"):
     st.write("test is good")
 
+# Spacing
+st.write("")
+st.write("")
+st.write("")
+
 # Footer (About Info)
-st.markdown(
-    """
-    <div class="footer">
-        <img src="https://jonathanboshoff.com/wp-content/uploads/2021/01/Jonathan-Boshoff-2.png" alt="Jonathan Boshoff">
-        <a href="https://jonathanboshoff.com">Made by: Jonathan Boshoff</a>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+st.image("https://jonathanboshoff.com/wp-content/uploads/2021/01/Jonathan-Boshoff-2.png", width=50)
+st.write("[Made by: Jonathan Boshoff](https://jonathanboshoff.com)")
