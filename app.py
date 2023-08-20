@@ -24,7 +24,7 @@ def extract_headings(url):
     return headings
 
 def evaluate_heading_relevance(heading):
-    prompt = f"How suitable is the heading '{heading}' for adding a statistic from a reputable source? Rate on a scale of 1 to 10 (10 being highly suitable)."
+    prompt = f"On a scale of 1 to 10, rate the suitability of the heading '{heading}' for adding a statistic from a reputable source (10 being highly suitable)."
     response = openai.Completion.create(
       engine="davinci",
       prompt=prompt,
@@ -40,14 +40,11 @@ def evaluate_heading_relevance(heading):
         return 0
 
 def rank_headings_for_statistics(headings):
-    scores = [(heading, evaluate_heading_relevance(heading)) for heading in headings]
+    unique_headings = list(set(headings))  # Ensure unique headings
+    scores = [(heading, evaluate_heading_relevance(heading)) for heading in unique_headings]
     # Sort by scores in descending order
     sorted_headings = [item[0] for item in sorted(scores, key=lambda x: x[1], reverse=True)]
     return sorted_headings[:10]
-
-
-
-
 
 
 st.title("Top 10 Headings for Statistics")
