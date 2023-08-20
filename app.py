@@ -24,7 +24,7 @@ def extract_headings(url):
     if not h1_heading:
         h1_heading = soup.title.string if soup.title else None
 
-    other_headings = [(tag.text.strip(), tag.name) for tag in soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6'])]
+    other_headings = list(set([(tag.text.strip(), tag.name) for tag in soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6'])]))
 
     return h1_heading, other_headings
 
