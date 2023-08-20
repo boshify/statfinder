@@ -63,6 +63,24 @@ def stylish_box(content):
     """
     return box_style.format(content=content)
 
+if url:
+    statistics = process_url(url)
+    if statistics:
+        for statistic, link in statistics:
+            example_use = f"<em>'According to a recent report, {statistic} (source: <a href='{link}'>{link}</a>)'</em>"
+            st.markdown(stylish_box(
+                f"<strong>Statistic:</strong> {statistic} <br> " +
+                f"<strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a> <br> " +
+                f"<strong>Example Use:</strong> {example_use}"
+            ), unsafe_allow_html=True)
+
+            unique_key = "copy_to_clipboard_" + str(hash(statistic))
+            if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
+                st.write("Example use copied to clipboard!")
+                st.copied(f"'According to a recent report, {statistic} (source: {link})'")
+    else:
+        st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
+
 # Styling
 st.markdown(
     """
