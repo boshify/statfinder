@@ -1,51 +1,29 @@
 import streamlit as st
 import openai
 
-# Load secrets
-secrets = st.secrets["secrets"]
-GOOGLE_API_KEY = secrets["GOOGLE_API_KEY"]
-CSE_ID = secrets["CSE_ID"]
-OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
+# Set up OpenAI API key
+openai.api_key = 'YOUR_OPENAI_API_KEY'
 
-# Initialize OpenAI
-openai.api_key = OPENAI_API_KEY
+# Streamlit Page title
+page_title = "Your Page Title Here"
+st.title(page_title)
 
-# Styling
-st.markdown(
-    """
-    <style>
-        .reportview-container {
-            background: black;
-            color: white;
-        }
-        h1 {
-            font-size: 50px;
-            margin-bottom: 30px;
-        }
-        img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            margin-top: 30px;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+with st.form(key='my_form'):
+    text_input = st.text_input(label='Enter some text')
+    submit_button = st.form_submit_button(label='Submit')
 
-st.title("StatGrabber")
-st.write("Enter a URL and find statistics you can link to quickly!")
+if submit_button:
+    # Make a call to OpenAI's API to get sentences related to the page title
+    def get_relevant_sentences(title, n=10):
+        responses = []
+        for i in range(n):
+            response = openai.Completion.create(
+                model="gpt-3.5-turbo",
+                prompt=f"Generate a unique sentence relevant to the title: '{title}'"
+            )
+            responses.append(response.choices[0].text.strip())
+        return responses
 
-url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
-
-if st.button("Go!"):
-    st.write("test is good")
-
-# Spacing
-st.write("")
-st.write("")
-st.write("")
-
-# Footer (About Info)
-st.image("https://jonathanboshoff.com/wp-content/uploads/2021/01/Jonathan-Boshoff-2.png", width=50)
-st.write("[Made by: Jonathan Boshoff](https://jonathanboshoff.com)")
+    sentences = get_relevant_sentences(page_title)
+    for sentence in sentences:
+        st.write(sentence)
