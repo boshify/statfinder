@@ -16,12 +16,13 @@ OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
 
-# More refined patterns targeting statistics, studies, and findings.
+# Added and refined patterns to target data, findings, proofs, and studies.
 STATISTIC_PATTERNS = [
     r'(\d{1,3}(?:,\d{3})*(?:\.\d+)?%?)',  # General numbers and percentages
     r'(\d+\s*in\s*\d+)',  # Ratios like 1 in 5
-    r'(study|research|survey|data|finding)s?\s*(shows?|found|reveals?|suggests?)',  # Words indicating a study or finding
+    r'(study|research|survey|data|finding)s?\s*(shows?|found|reveals?|suggests?|indicates?)',  # Indicating a study or finding
     r'(one|two|three|four|five|six|seven|eight|nine|ten)\s*out of (ten|a hundred)',  # Written ratios
+    r'(evidence|proof|result)s?\s*(shows?|suggests?|indicates?)'  # Indicating evidence or proof
 ]
 
 def chunk_text(text, max_length=1500):
@@ -127,7 +128,13 @@ def search_google(query):
     response = requests.get(url).json()
     return response['items'][0]['link']
 
-def extract_statistic_from_url(url):
+def score_statistic(statistic, keywords):
+    score = 0
+    for keyword in keywords:
+        score += statistic.lower().count(keyword.lower())
+    return score
+
+def extract_statistic_from_url(url, keywords):
     page_content = get_webpage_content(url)
     if not page_content:
         return None, url
@@ -141,19 +148,20 @@ def extract_statistic_from_url(url):
             start_idx = match.start()
             end_idx = match.end()
 
-            # Extract sentences containing the matched pattern for more meaningful context.
+            # Extract sentences containing the matched pattern for context.
             start_sentence_idx = page_text.rfind('.', 0, start_idx) + 1  # start of the sentence
             end_sentence_idx = page_text.find('.', end_idx)  # end of the sentence
             surrounding_text = page_text[start_sentence_idx:end_sentence_idx + 1].strip()
-            
-            if is_valid_content(surrounding_text):
-                potential_statistics.append(surrounding_text.strip())
 
-    # Sorting the potential statistics by length and taking the shortest one (assuming it's the most concise)
-    potential_statistics.sort(key=len)
+            # Ensure the extracted text is a complete sentence.
+            if surrounding_text and surrounding_text[-1] == '.' and is_valid_content(surrounding_text):
+                potential_statistics.append((surrounding_text.strip(), score_statistic(surrounding_text, keywords)))
+
+    # Sorting the potential statistics by their scores
+    potential_statistics.sort(key=lambda x: -x[1])
     
     if potential_statistics:
-        return potential_statistics[0], url
+        return potential_statistics[0][0], url
     return None, url
 
 
