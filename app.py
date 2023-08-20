@@ -48,6 +48,21 @@ def extract_content_from_html(html_content):
         script.extract()
     return " ".join(soup.stripped_strings)
 
+#stylish box output
+def stylish_box(content):
+    box_style = """
+    <div style="
+        border: 2px solid #f1f1f1;
+        border-radius: 5px;
+        padding: 10px;
+        margin: 10px 0px;
+        box-shadow: 2px 2px 12px #aaa;">
+        {content}
+    </div>
+    """
+    return box_style.format(content=content)
+
+
 # Styling
 st.markdown(
     """
@@ -112,10 +127,16 @@ if st.button("Go!"):
             )
 
             key_points = response.choices[0].text.strip().split("\n")
+            min_length = 5
+            max_length = 150
+            key_points = [point for point in key_points if min_length <= len(point.split()) <= max_length]
+
             aggregated_points.extend(key_points)
-        # Display the top 10 key points
-        for idx, point in enumerate(aggregated_points[:10], 1):
-            st.write(f"{idx}. {point}")
+        
+# Display the top 10 key points
+for idx, point in enumerate(aggregated_points[:10], 1):
+    st.markdown(stylish_box(f"{idx}. {point}"), unsafe_allow_html=True)
+
     else:
         st.write("Failed to fetch the content.")
 
