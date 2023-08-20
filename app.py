@@ -28,16 +28,8 @@ def extract_headings(url):
 
     return h1_heading, other_headings
 
-def evaluate_heading_relevance(heading, level, reference_h1):
-    weight = {
-        'h2': 1.2,
-        'h3': 1.4,
-        'h4': 1.6,
-        'h5': 1.8,
-        'h6': 2
-    }.get(level, 1)
-
-    prompt = f"Given the main topic '{reference_h1}', on a scale of 1 to 10, rate the suitability of the heading '{heading}' for adding a statistic from a reputable source (10 being highly suitable)."
+def evaluate_heading_relevance(heading, reference_h1):
+    prompt = f"On a scale of 1 to 10, rate the relevance of the heading '{heading}' to the main topic '{reference_h1}' (10 being highly relevant)."
     response = openai.Completion.create(
       engine="davinci",
       prompt=prompt,
@@ -48,16 +40,19 @@ def evaluate_heading_relevance(heading, level, reference_h1):
     )
     score = response.choices[0].text.strip()
     try:
-        return int(score) * weight
+        return int(score)
     except ValueError:
         return 0
 
 def rank_headings_for_statistics(h1_heading, other_headings):
-    # Ensure unique headings
-    unique_headings = list(set(other_headings))
+    # Evaluate relevance of each heading
+    scores = [(heading, evaluate_heading_relevance(heading, h1_heading)) for heading, _ in other_headings]
 
-    scores = [(heading, evaluate_heading_relevance(heading, level, h1_heading)) for heading, level in unique_headings]
-    sorted_headings = [item[0] for item in sorted(scores, key=lambda x: x[1], reverse=True)]
+    # Filter out headings with low relevance scores (e.g., score < 5)
+    relevant_headings = [item for item in scores if item[1] >= 5]
+
+    # Sort the relevant headings
+    sorted_headings = [item[0] for item in sorted(relevant_headings, key=lambda x: x[1], reverse=True)]
     return sorted_headings[:10]
 
 # Streamlit UI
