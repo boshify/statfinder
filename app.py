@@ -38,12 +38,17 @@ def extract_content_from_html(html_content):
 
 def summarize_content_with_gpt4(text_content):
     """Summarize content with GPT-4."""
-    response = openai.Completion.create(
-        model="gpt-4",
-        prompt=f"Provide concise summaries for the main ideas in the following content:\n{text_content}",
-        max_tokens=200
-    )
-    return response.choices[0].text.strip().split("\n")
+    try:
+        response = openai.Completion.create(
+            model="gpt-4",
+            prompt=f"Provide concise summaries for the main ideas in the following content:\n{text_content}",
+            max_tokens=200
+        )
+        return response.choices[0].text.strip().split("\n")
+    except Exception as e:
+        st.warning(f"Error communicating with OpenAI: {str(e)}")
+        return []
+
 
 def search_google_for_statistic(query):
     """Search Google for a statistic related to the query."""
