@@ -1,42 +1,31 @@
 import streamlit as st
 import requests
-from googleapiclient.discovery import build
-import openai
+from bs4 import BeautifulSoup
 
-# Load secrets
-secrets = st.secrets["secrets"]
-GOOGLE_API_KEY = secrets["GOOGLE_API_KEY"]
-CSE_ID = secrets["CSE_ID"]
-OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
+def extract_headings(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Connection": "keep-alive",
+    }
 
-# Initialize OpenAI
-openai.api_key = OPENAI_API_KEY
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.content, 'html.parser')
 
-def google_search(query, api_key, cse_id, **kwargs):
-    service = build("customsearch", "v1", developerKey=api_key)
-    res = service.cse().list(q=query, cx=cse_id, **kwargs).execute()
-    return res['items']
+    headings = []
+    for tag in soup.find_all(['h1', 'h2', 'h3']):
+        indent = '    ' * (int(tag.name[1]) - 1)
+        headings.append(f"{indent}<{tag.name}>{tag.text.strip()}</{tag.name}>")
 
-def summarize_with_openai(text):
-    response = openai.Completion.create(
-      engine="davinci",
-      prompt=f"Summarize the following search results:\n{text}",
-      max_tokens=150
-    )
-    return response.choices[0].text.strip()
+    return headings
 
-st.title("Google Search and Summary App")
+st.title("Heading Extractor")
 
 # User input
-query = st.text_input("Enter your search query:")
+url = st.text_input("Enter a URL:")
 
-if query:
-    # Google Search
-    results = google_search(query, GOOGLE_API_KEY, CSE_ID)
-    search_results = "\n".join([result["title"] + ": " + result["link"] for result in results])
-    st.write(search_results)
-
-    # Summarize with OpenAI
-    summary = summarize_with_openai(search_results)
-    st.subheader("Summary:")
-    st.write(summary)
+if url:
+    st.write("Extracted Headings:")
+    headings = extract_headings(url)
+    for heading in headings:
+        st.write(heading)
