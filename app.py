@@ -18,11 +18,12 @@ openai.api_key = OPENAI_API_KEY
 
 # Regex patterns to identify sentences with potential statistics
 STATISTIC_PATTERNS = [
-    r'\d+%',             # Matches '78%'
-    r'1 in \d+',         # Matches '1 in 10'
-    r'\$\d+',            # Matches dollar values like '$111'
-    r'\d+(?:\.\d+)?',    # Matches decimal and non-decimal numbers
+    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',      # Matches '78%' or '1,234.56%'
+    r'1 in \d+',r'1 of \d+'                           # Matches '1 in/of 10'
+    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?',    # Matches dollar values like '$111' or '$1,234,567.89'
+    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',      # Matches decimal and non-decimal numbers
 ]
+
 
 def chunk_text(text, max_length=1500):
     sentences = text.split('.')
@@ -156,16 +157,20 @@ def search_google(query):
 
 def extract_statistic_from_url(url):
     page_content = get_webpage_content(url)
+    if not page_content:
+        return None, url
     page_text = extract_content_from_html(page_content)
     
     for pattern in STATISTIC_PATTERNS:
         matches = re.findall(pattern, page_text)
         for match in matches:
+            # Taking more context before and after the matched pattern for clarity
             start_idx = page_text.find(match)
-            surrounding_text = page_text[max(0, start_idx - 30):min(start_idx + len(match) + 30, len(page_text))]
-            if len(surrounding_text.split()) > 3:
+            surrounding_text = page_text[max(0, start_idx - 60):min(start_idx + len(match) + 60, len(page_text))]
+            if len(surrounding_text.split()) > 5: # Ensure we have a decent sentence length
                 return surrounding_text.strip(), url
     return None, url
+
 
 def process_url(url):
     with st.spinner():
@@ -204,6 +209,8 @@ def process_url(url):
                 if not is_valid_content(summarized_point):
                     summarized_point = point
 
+                # Add a slight sleep here to avoid hammering Google's API
+                time.sleep(1.5)
                 search_query = f"statistics 2023 {summarized_point}"
                 statistic, stat_url = extract_statistic_from_url(search_google(search_query))
                 
@@ -213,6 +220,7 @@ def process_url(url):
 
         else:
             st.error(f"Unable to fetch the content from {url}. Please ensure it's accessible.")
+
 
 if url and url != "Enter a URL for a page or blog post to grab stats for..":
     process_url(url)
