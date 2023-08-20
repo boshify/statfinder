@@ -78,6 +78,26 @@ fun_messages = [
     "at the speed of light..."
 ]
 
+# Function to get webpage content
+def get_webpage_content(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.text
+    else:
+        return None
+
+# Function to extract content from the HTML
+def extract_content_from_html(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    # This is just a basic extraction, and might need adjustments
+    for script in soup(["script", "style"]):
+        script.extract()
+    return " ".join(soup.stripped_strings)
+
+
 def process_url(url):
     with st.spinner(random.choice(fun_messages)):
         html_content = get_webpage_content(url)
