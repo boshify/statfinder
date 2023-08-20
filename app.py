@@ -2,10 +2,12 @@ import streamlit as st
 import requests
 import json
 import openai
+from bs4 import BeautifulSoup
+import re
 
 # Set Streamlit page configuration
 st.set_page_config(
-    page_title="URL Statistics Finder",
+    page_title="URL Statistics Enhancer",
     page_icon="🔍",
     layout="wide",
 )
@@ -16,80 +18,77 @@ CSE_ID = st.secrets["CSE_ID"]
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
 
-def fetch_stats_from_google(query):
-    stats = []
+def extract_text_from_url(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract text from H1 to start of footer
+        h1 = soup.find('h1')
+        footer = soup.find('footer')
+        if h1 and footer:
+            content = ''.join(str(item) for item in h1.find_all_next() if item != footer)
+            return BeautifulSoup(content, 'html.parser').get_text()
+        return None
+    except:
+        return None
+
+def generate_queries_with_gpt(text):
+    try:
+        response = openai.Completion.create(
+          engine="gpt-3.5-turbo",
+          prompt=f"From the following content, generate 10 sentences where a statistic should be added:\n\n{text}",
+          max_tokens=500,
+          n=1,
+          stop=None,
+          temperature=0.7
+        )
+        queries = response.choices[0].text.strip().split('\n')
+        return queries
+    except:
+        return []
+
+def fetch_stat_from_google(query):
     try:
         GOOGLE_CSE_URL = "https://www.googleapis.com/customsearch/v1"
         params = {
-            'q': query,
+            'q': f"statistics about {query}",
             'key': API_KEY,
             'cx': CSE_ID,
         }
         response = requests.get(GOOGLE_CSE_URL, params=params)
         data = response.json()
-        
-        for item in data.get("items", []):
-            title = item["title"]
-            link = item["link"]
-            stats.append({"stat": title, "link": link})
-    except Exception as e:
-        stats.append({"stat": f"Error: {str(e)}", "link": "#"})
-    return stats
-
-def get_insight_from_openai(link):
-    try:
-        response = openai.Completion.create(
-          engine="davinci",
-          prompt=f"Summarize the main topic or content of this link: {link}",
-          max_tokens=150,
-          n=1,
-          stop=None,
-          temperature=0.7
-        )
-        insight = response.choices[0].text.strip()
-        # Ensure the insight is not too short
-        if len(insight.split()) < 5:
-            return "Insight not available."
-        return insight
+        if data.get("items"):
+            for item in data["items"]:
+                # Ensure the statistic contains a number, percent, or amount
+                if re.search(r'\d+|\d+\.\d+|\d+%', item["title"]):
+                    return {"stat": item["title"], "link": item["link"]}
+        return None
     except:
-        return "Unable to fetch insight."
+        return None
 
 # Streamlit layout and components
 c30, c31 = st.columns([10.5, 1])
 
 with c30:
-    st.title("URL Statistics Finder")
-
-with st.expander("ℹ - About the App"):
-    st.write(
-        """
-- This application aims to find relevant statistics about the topic of a given URL.
-- To do so, simply enter the URL you're interested in.
-- The app will provide you with a list of relevant statistics, links, and insights.
-	    """
-    )
+    st.title("URL Statistics Enhancer")
 
 st.markdown("----")
 
-c1, c2 = st.columns([1.5, 4])
+url = st.text_input('Insert the URL you want to enhance with statistics:')
 
-with c1:
-    url = st.text_input('Insert the URL you want to search for statistics:')
-    
-    if url:
-        stats = fetch_stats_from_google(url)
-
-        with c2:
-            for s in stats:
-                if "Error" in s['stat']:
-                    st.error(s['stat'])  # Display the error message
-                else:
-                    insight = get_insight_from_openai(s['link'])
-                    truncated_link = (s['link'][:50] + '...') if len(s['link']) > 50 else s['link']
-                    st.markdown(f"**Stat:** {s['stat']}")
-                    st.markdown(f"**Link:** [{truncated_link}]({s['link']})")
-                    st.markdown(f"**Insight:** {insight}")
-                    st.markdown(f"**Example Usage:** {s['stat']} [source]({s['link']})")
-                    st.markdown("---")
+if url:
+    text = extract_text_from_url(url)
+    if text:
+        queries = generate_queries_with_gpt(text)
+        for query in queries:
+            stat_data = fetch_stat_from_google(query)
+            if stat_data:
+                st.markdown(f"**Statistic:** {stat_data['stat']}")
+                st.markdown(f"**Statistic URL:** [{stat_data['link']}]({stat_data['link']})")
+                st.markdown(f"**Example Use:** `{query} [source]({stat_data['link']})`")
+                st.markdown("---")
+    else:
+        st.error("Unable to extract content from the provided URL.")
 
 st.markdown("----")
