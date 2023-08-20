@@ -192,11 +192,15 @@ def process_url(url):
         progress = st.progress(0)
         total_chunks = len(chunks)
         aggregated_points = []
-        
         for idx, point in enumerate(aggregated_points[:10], 1):
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
+        ]
+    )
+
                 {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
             ]
         )
