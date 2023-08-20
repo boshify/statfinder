@@ -73,8 +73,8 @@ fun_messages = [
     "Finding the best statistics...",
     "Analyzing the content...",
     "Thinking really hard...",
-    "Almost there...",
-    "Just a moment more..."
+    "Grabbing some coffee...",
+    "Doing some cool AI stuff..."
 ]
 
 def get_webpage_content(url):
@@ -99,6 +99,14 @@ def show_loading_message(duration=6):  # default duration to 6 seconds, adjust a
     while time.time() - start_time < duration:
         loading_message_placeholder.text(random.choice(fun_messages))
         time.sleep(2)
+
+def summarize_text(text, max_tokens=10):
+    response = openai.Completion.create(
+        engine="davinci",
+        prompt=f"Summarize the following in one short phrase:\n{text}",
+        max_tokens=max_tokens
+    )
+    return response.choices[0].text.strip()
 
 def process_url(url):
     with st.spinner():
@@ -125,8 +133,10 @@ def process_url(url):
                 aggregated_points.extend(key_points)
                 progress.progress(int((idx/total_chunks) * 100))
             
+            # Further summarize each point
             for idx, point in enumerate(aggregated_points[:10], 1):
-                st.markdown(stylish_box(f"{idx}. {point}"), unsafe_allow_html=True)
+                summarized_point = summarize_text(point)
+                st.markdown(stylish_box(f"{idx}. {summarized_point}"), unsafe_allow_html=True)
         else:
             st.write("Failed to fetch the content.")
 
