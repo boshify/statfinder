@@ -1,77 +1,95 @@
 import streamlit as st
+import openai
+from bs4 import BeautifulSoup
 import requests
 import random
 import re
-import nltk
-from bs4 import BeautifulSoup
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.tag import pos_tag
 
-nltk.download('punkt')
-nltk.download('averaged_perceptron_tagger')
-nltk.download('stopwords')
+# Secrets
+secrets = st.secrets["secrets"]
+GOOGLE_API_KEY = secrets["GOOGLE_API_KEY"]
+CSE_ID = secrets["CSE_ID"]
+OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 
+# Initialize OpenAI
+openai.api_key = OPENAI_API_KEY
+
+# Regex patterns to identify potential statistics
 STATISTIC_PATTERNS = [
-    re.compile(r'(?P<stat>\d+%?\s?[-–—]\s?\d+%)'),
-    re.compile(r'(?P<stat>\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*(?:million|billion|trillion)?\b)'),
-    re.compile(r'(?P<stat>\b\d{1,3}(?:\.\d{3})*(?:,\d+)?\s*(?:million|billion|trillion)?\b)'),
-    re.compile(r'(?P<stat>\d+%?\s?(?:of|from|to|between)\s?.+?)\.')
+    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',  
+    r'1 in \d+',                      
+    r'1 of \d+',                      
+    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?', 
+    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',   
 ]
 
-fun_messages = [
-    "🔍 Searching for gold...",
-    "📊 Digging deep for those stats...",
-    "🤖 My digital spade is at work...",
-    "⛏️ Miners are hard at work...",
-    "💼 Suiting up for some data extraction..."
+FUN_MESSAGES = [
+    "Calculating pixels...",
+    "Finding best statistics...",
+    "Analyzing content...",
+    "Thinking...",
+    "Brewing coffee...",
+    "AI magic in progress..."
 ]
 
-def extract_content_from_html(html_content):
+@st.cache(show_spinner=False)
+def fetch_web_content(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        return response.text if response.status_code == 200 else None
+    except:
+        return None
+
+@st.cache(show_spinner=False)
+def extract_html_content(html_content):
+    if not html_content:
+        return ""
     soup = BeautifulSoup(html_content, 'html.parser')
     for script in soup(["script", "style"]):
         script.extract()
     return " ".join(soup.stripped_strings)
 
-def extract_statistic_from_url(url):
-    try:
-        page_content = requests.get(url).text
-        page_text = extract_content_from_html(page_content)
-        
-        potential_statistics = []
-        for pattern in STATISTIC_PATTERNS:
-            matches = re.finditer(pattern, page_text)
-            for match in matches:
-                start_idx = match.start()
-                end_idx = match.end()
+def find_statistics(text_content):
+    stats = []
+    for pattern in STATISTIC_PATTERNS:
+        matches = re.findall(pattern, text_content)
+        stats.extend(matches)
+    return stats
 
-                start_sentence_idx = page_text.rfind('.', 0, start_idx) + 1
-                end_sentence_idx = page_text.find('.', end_idx)
-                surrounding_text = page_text[start_sentence_idx:end_sentence_idx + 1].strip()
+def search_google(query):
+    url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API_KEY}&cx={CSE_ID}"
+    response = requests.get(url).json()
+    return response.get('items', [{}])[0].get('link', '')
 
-                if surrounding_text and surrounding_text[-1] == '.':
-                    potential_statistics.append(surrounding_text)
-        
-        return potential_statistics
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-        return []
+def main():
+    st.title("StatGrabber 2.0")
+    st.write("Enter a URL and discover amazing statistics!")
+    url = st.text_input("Enter URL:")
 
-st.title("StatFinder")
-st.write("Enter a URL and find statistics you can link to quickly!")
-url = st.text_input("Enter URL:")
+    if url:
+        with st.spinner(random.choice(FUN_MESSAGES)):
+            html_content = fetch_web_content(url)
+            text_content = extract_html_content(html_content)
+            stats = find_statistics(text_content)
 
-if url:
-    st.write(random.choice(fun_messages))
-    statistics = extract_statistic_from_url(url)
-    if statistics:
-        for statistic in statistics:
-            example_use = f"<em>'According to a recent report, {statistic} (source: <a href='{url}'>{url}</a>)'</em>"
-            st.markdown(
-                f"<strong>Statistic:</strong> {statistic} <br> " +
-                f"<strong>Link:</strong> <a href='{url}' target='_blank'>{url}</a> <br> " +
-                f"<strong>Example Use:</strong> {example_use}",
-                unsafe_allow_html=True
-            )
-    else:
-        st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
+            if not stats:
+                st.warning("No statistics found in the provided URL.")
+                return
+
+            for idx, stat in enumerate(stats, 1):
+                search_query = f"statistics 2023 {stat}"
+                link = search_google(search_query)
+                if link:
+                    st.markdown(f"**{idx}. Statistic:** {stat} [Source]({link})")
+                else:
+                    st.markdown(f"**{idx}. Statistic:** {stat}")
+
+    st.sidebar.header("About")
+    st.sidebar.write("StatGrabber 2.0 is an enhanced AI-powered tool to help you quickly discover and cite statistics from your content.")
+    st.sidebar.write("This tool leverages GPT-4 and other models to analyze content and provide relevant statistics.")
+
+if __name__ == '__main__':
+    main()
