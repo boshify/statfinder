@@ -5,6 +5,7 @@ import requests
 import time
 import random
 import re
+import lxml
 
 # Load secrets
 secrets = st.secrets["secrets"]
@@ -96,11 +97,32 @@ def get_webpage_content(url):
     else:
         return None
 
+def is_html(content):
+    """
+    Check if content seems to be HTML by looking for typical HTML tags.
+    """
+    html_tags = ['<html', '<body', '<head', '<script', '<div', '<span', '<a']
+    if any(tag in content.lower() for tag in html_tags):
+        return True
+    return False
+
 def extract_content_from_html(html_content):
-    soup = BeautifulSoup(html_content, 'html.parser')
+    if not is_html(html_content):
+        return ""
+    
+    try:
+        soup = BeautifulSoup(html_content, 'html.parser')
+    except bs4.builder.ParserRejectedMarkup:
+        try:
+            # Try using lxml parser as an alternative
+            soup = BeautifulSoup(html_content, 'lxml')
+        except:
+            return ""
+
     for script in soup(["script", "style"]):
         script.extract()
     return " ".join(soup.stripped_strings)
+
 
 def show_loading_message(duration=6):
     loading_message_placeholder = st.empty()
