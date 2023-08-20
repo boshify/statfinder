@@ -80,16 +80,23 @@ def fetch_stat_from_google(query):
 
 def get_trust_score_with_gpt(stat):
     try:
-        response = openai.Completion.create(
-            engine="davinci",
-            prompt=f"Score this information from 1-10 on a scale of believability. 10 being highly believable and 1 being hardest to believe:\n\n{stat}",
-            max_tokens=10
+        response = openai.ChatCompletion.create(
+          model="gpt-3.5-turbo",
+          messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Score this information from 1-10 on a scale of believability. 10 being highly believable and 1 being hardest to believe:\n\n{stat}"}
+            ]
         )
-        score = int(response.choices[0].text.strip())
-        return score
+        # Extract the first number from the response
+        score = re.search(r'\d+', response.choices[0].message['content'].strip())
+        if score:
+            return int(score.group())
+        else:
+            return 5  # Default score if no number found
     except Exception as e:
         st.error(f"Error in get_trust_score_with_gpt: {e}")
         return 5  # Default score
+
 
 # Streamlit layout and components
 c30, c31 = st.columns([10.5, 1])
