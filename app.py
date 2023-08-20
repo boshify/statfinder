@@ -1,39 +1,42 @@
 import streamlit as st
-import requests
-from bs4 import BeautifulSoup
+import openai
 
-st.title('H1 and H2 Extractor')
+# Load secrets
+secrets = st.secrets["secrets"]
+GOOGLE_API_KEY = secrets["GOOGLE_API_KEY"]
+CSE_ID = secrets["CSE_ID"]
+OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 
-# Input for URL
-url = st.text_input('Enter the URL:')
+# Initialize OpenAI
+openai.api_key = OPENAI_API_KEY
 
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-}
+# Styling
+st.markdown(
+    """
+    <style>
+        .reportview-container {
+            background: black;
+            color: white;
+        }
+        h1 {
+            font-size: 50px;
+        }
+        img {
+            width: 300px;
+            border-radius: 50%;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-if url:
-    try:
-        # Fetch the content of the URL
-        response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()
+st.image("https://jonathanboshoff.com/wp-content/uploads/2021/01/Jonathan-Boshoff-2.png", caption="")
+st.title("StatGrabber")
+st.write("Enter a URL and find statistics you can link to quickly!")
+st.write("[Made by: Jonathan Boshoff](https://jonathanboshoff.com)")
 
-        # Parse the page using BeautifulSoup
-        soup = BeautifulSoup(response.text, 'html.parser')
+url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
 
-        # Extract all h1 and h2 tags
-        h1_tags = soup.find_all('h1')
-        h2_tags = soup.find_all('h2')
-
-        if h1_tags and h2_tags:
-            h1_text = h1_tags[0].get_text()
-
-            # Display "statistics for: h2 + h1" formatted list
-            for h2 in h2_tags:
-                st.write(f'statistics for: {h2.get_text()} + {h1_text}')
-
-        else:
-            st.warning('No H1 or H2 tags found on the provided URL.')
-
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+if st.button("Go!"):
+    st.write("test is good")
 
