@@ -77,6 +77,7 @@ def fetch_stat_from_google(query):
                 })
     return results
 
+
 def get_trust_score_with_gpt(stat):
     try:
         response = openai.Completion.create(
