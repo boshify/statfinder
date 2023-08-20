@@ -30,7 +30,8 @@ def extract_text_from_url(url):
             content = ''.join(str(item) for item in h1.find_all_next() if item != footer)
             return BeautifulSoup(content, 'html.parser').get_text()
         return None
-    except:
+    except Exception as e:
+        st.error(f"Error in extract_text_from_url: {e}")
         return None
 
 def generate_queries_with_gpt(text):
@@ -45,7 +46,8 @@ def generate_queries_with_gpt(text):
         )
         queries = response.choices[0].text.strip().split('\n')
         return queries
-    except:
+    except Exception as e:
+        st.error(f"Error in generate_queries_with_gpt: {e}")
         return []
 
 def fetch_stat_from_google(query):
@@ -64,7 +66,8 @@ def fetch_stat_from_google(query):
                 if re.search(r'\d+|\d+\.\d+|\d+%', item["title"]):
                     return {"stat": item["title"], "link": item["link"]}
         return None
-    except:
+    except Exception as e:
+        st.error(f"Error in fetch_stat_from_google: {e}")
         return None
 
 # Streamlit layout and components
@@ -80,7 +83,9 @@ url = st.text_input('Insert the URL you want to enhance with statistics:')
 if url:
     text = extract_text_from_url(url)
     if text:
+        st.write(f"Extracted Text: {text[:500]}...")  # Displaying the first 500 characters for debugging
         queries = generate_queries_with_gpt(text)
+        st.write(f"Generated Queries: {queries}")  # Displaying the generated queries for debugging
         for query in queries:
             stat_data = fetch_stat_from_google(query)
             if stat_data:
