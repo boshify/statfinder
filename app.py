@@ -90,40 +90,6 @@ st.title("StatFinder")
 st.write("Enter a URL and find statistics you can link to quickly!")
 url = st.text_input("Enter URL:")
 
-def process_url(url):
-    show_loading_message()
-    html_content = get_webpage_content(url)
-    if html_content:
-        text_content = extract_content_from_html(html_content)
-        keywords = extract_keywords(text_content)
-        statistics = extract_statistic_from_url(url, keywords)
-        return [(stat, url) for stat, _ in statistics]
-    return []
-
-if url:
-    statistics = process_url(url)
-    if statistics:
-        for statistic, link in statistics:
-            example_use = f"<em>'According to a recent report, {statistic} (source: <a href='{link}'>{link}</a>)'</em>"
-            st.markdown(stylish_box(
-                f"<strong>Statistic:</strong> {statistic} <br> " +
-                f"<strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a> <br> " +
-                f"<strong>Example Use:</strong> {example_use}"
-            ), unsafe_allow_html=True)
-            
-            unique_key = "copy_to_clipboard_" + str(hash(statistic))
-            if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
-                # For now, I've just commented out the st.copied line, as it doesn't exist in my knowledge.
-                # st.copied(f"'According to a recent report, {statistic} (source: {link})'")
-                st.write("Statistic copied to clipboard!")  # This is a placeholder. In reality, you'd need a method to copy to the clipboard.
-    else:
-        st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
-
-
-st.title("StatFinder")
-st.write("Enter a URL and find statistics you can link to quickly!")
-url = st.text_input("Enter URL:")
-
 fun_messages = [
     "Calculating all the pixels...",
     "Finding the best statistics...",
@@ -202,37 +168,38 @@ def extract_statistic_from_url(url, keywords):
             if surrounding_text and surrounding_text[-1] == '.' and is_valid_content(surrounding_text):
                 potential_statistics.append((surrounding_text.strip(), score_statistic(surrounding_text, keywords)))
 
-    potential_statistics.sort(key=lambda x: -x[1])
-    
-    if potential_statistics:
-        return potential_statistics[:10]
-    return []
+    potential_statistics.sort(key=lambda x: x[1], reverse=True)
+    return [(stat[0], search_google(stat[0])) for stat in potential_statistics[:10]]
 
 def process_url(url):
-    show_loading_message()
-    html_content = get_webpage_content(url)
-    if html_content:
-        text_content = extract_content_from_html(html_content)
-        keywords = extract_keywords(text_content)
-        statistics = extract_statistic_from_url(url, keywords)
-        return [(stat, url) for stat, _ in statistics]
-    return []
+    content = get_webpage_content(url)
+    if not content:
+        return []
+
+    text = extract_content_from_html(content)
+    if not text:
+        return []
+
+    main_keywords = extract_keywords(text)
+    statistics = extract_statistic_from_url(url, main_keywords)
+    return statistics
 
 if url:
+    show_loading_message()
     statistics = process_url(url)
     if statistics:
         for statistic, link in statistics:
-    example_use = f"<em>'According to a recent report, {statistic} (source: <a href='{link}'>{link}</a>)'</em>"
-    st.markdown(stylish_box(
-        f"<strong>Statistic:</strong> {statistic} <br> " +
-        f"<strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a> <br> " +
-        f"<strong>Example Use:</strong> {example_use}"
-    ), unsafe_allow_html=True)
-    
-    unique_key = "copy_to_clipboard_" + str(hash(statistic))
-    if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
-        st.copied(f"'According to a recent report, {statistic} (source: {link})'")
-
-
+            example_use = f"<em>'According to a recent report, {statistic} (source: <a href='{link}'>{link}</a>)'</em>"
+            st.markdown(stylish_box(
+                f"<strong>Statistic:</strong> {statistic} <br> " +
+                f"<strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a> <br> " +
+                f"<strong>Example Use:</strong> {example_use}"
+            ), unsafe_allow_html=True)
+            
+            unique_key = "copy_to_clipboard_" + str(hash(statistic))
+            if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
+                # For now, I've just commented out the st.copied line, as it doesn't exist in my knowledge.
+                # st.copied(f"'According to a recent report, {statistic} (source: {link})'")
+                st.write("Statistic copied to clipboard!")  # This is a placeholder. In reality, you'd need a method to copy to the clipboard.
     else:
         st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
