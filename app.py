@@ -186,15 +186,10 @@ def process_url(url):
             statistic, stat_url = extract_statistic_from_url(search_google(search_query))
             
             if statistic:
-                content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to clipboard</button>"
-                st.markdown(stylish_box(content), unsafe_allow_html=True)
-            else:
-                content = f"{idx}. {summarized_point}<br><br>No relevant statistic found."
+                content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to Clipboard</button>"
                 st.markdown(stylish_box(content), unsafe_allow_html=True)
     else:
-        st.error("Unable to fetch the content from the provided URL. Please check if the URL is correct and try again.")
+        st.error("Error fetching the webpage content. Please ensure the URL is correct and try again.")
 
-
-st.sidebar.header("About")
-st.sidebar.write("StatGrabber is an AI-powered tool to help you quickly find and cite statistics related to your article or content.")
-st.sidebar.write("This tool uses GPT-4 and other AI models to analyze the content and fetch relevant statistics.")
+if url:
+    process_url(url)
