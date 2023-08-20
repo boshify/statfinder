@@ -149,54 +149,51 @@ def extract_statistic_from_url(url):
     return None, url
 
 def process_url(url):
-    with st.spinner():
-        show_loading_message()
-        html_content = get_webpage_content(url)
-        if html_content:
-            text_content = extract_content_from_html(html_content)
-            chunks = [chunk for chunk in chunk_text(text_content) if is_valid_content(chunk)]
-            
-            progress = st.progress(0)
-            total_chunks = len(chunks)
-            aggregated_points = []
-            
-            for idx, text_chunk in enumerate(chunks):
-                with openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "user", "content": f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}"}
-                    ]
-                ) as response:
-                    key_points = response.choices[0]["message"]["content"].strip().split("\n")
-                    key_points = [point for point in key_points if 5 <= len(point.split()) <= 150]
-                    aggregated_points.extend(key_points)
-                progress.progress(int((idx/total_chunks) * 100))
-            
-            for idx, point in enumerate(aggregated_points[:10], 1):
-                with openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
-                    ]
-                ) as response:
-                    summarized_point = response.choices[0]["message"]["content"].strip()
-                    summarized_point = point if not is_valid_content(summarized_point) else summarized_point
+    show_loading_message()
+    html_content = get_webpage_content(url)
+    if html_content:
+        text_content = extract_content_from_html(html_content)
+        chunks = [chunk for chunk in chunk_text(text_content) if is_valid_content(chunk)]
+        
+        progress = st.progress(0)
+        total_chunks = len(chunks)
+        aggregated_points = []
+        
+        for idx, text_chunk in enumerate(chunks):
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}"}
+                ]
+            )
+            key_points = response.choices[0]["message"]["content"].strip().split("\n")
+            key_points = [point for point in key_points if 5 <= len(point.split()) <= 150]
+            aggregated_points.extend(key_points)
+            progress.progress(int((idx/total_chunks) * 100))
+        
+        for idx, point in enumerate(aggregated_points[:10], 1):
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
+                ]
+            )
+            summarized_point = response.choices[0]["message"]["content"].strip()
+            summarized_point = point if not is_valid_content(summarized_point) else summarized_point
 
-                time.sleep(1.5)
-                search_query = f"statistics 2023 {summarized_point}"
-                statistic, stat_url = extract_statistic_from_url(search_google(search_query))
-                
-                if statistic:
-                    content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to clipboard</button>"
-                    st.markdown(stylish_box(content), unsafe_allow_html=True)
-                else:
-                    content = f"{idx}. {summarized_point}<br><br>No relevant statistic found."
-                    st.markdown(stylish_box(content), unsafe_allow_html=True)
-        else:
-            st.error("Unable to fetch the content from the provided URL. Please check if the URL is correct and try again.")
+            time.sleep(1.5)
+            search_query = f"statistics 2023 {summarized_point}"
+            statistic, stat_url = extract_statistic_from_url(search_google(search_query))
+            
+            if statistic:
+                content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to clipboard</button>"
+                st.markdown(stylish_box(content), unsafe_allow_html=True)
+            else:
+                content = f"{idx}. {summarized_point}<br><br>No relevant statistic found."
+                st.markdown(stylish_box(content), unsafe_allow_html=True)
+    else:
+        st.error("Unable to fetch the content from the provided URL. Please check if the URL is correct and try again.")
 
-if url:
-    process_url(url)
 
 st.sidebar.header("About")
 st.sidebar.write("StatGrabber is an AI-powered tool to help you quickly find and cite statistics related to your article or content.")
