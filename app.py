@@ -130,12 +130,14 @@ def process_url(url):
             progress = st.progress(0)
             total_chunks = len(chunks)
             for idx, text_chunk in enumerate(chunks, 1):
-                response = openai.Completion.create(
-                    engine="davinci",
-                    prompt=f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}",
-                    max_tokens=250
+                # Changes here for gpt-3.5-turbo
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "user", "content": f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}"}
+                    ]
                 )
-                key_points = response.choices[0].text.strip().split("\n")
+                key_points = response.choices[0]["message"]["content"].strip().split("\n")
                 min_length = 5
                 max_length = 150
                 key_points = [point for point in key_points if min_length <= len(point.split()) <= max_length]
@@ -144,12 +146,20 @@ def process_url(url):
             
             # Further summarize each point (with fallback)
             for idx, point in enumerate(aggregated_points[:10], 1):
-                summarized_point = summarize_text(point)
+                # Changes here for gpt-3.5-turbo
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
+                    ]
+                )
+                summarized_point = response.choices[0]["message"]["content"].strip()
                 if not is_valid_content(summarized_point):
                     summarized_point = point  # Fallback to original summary if the new one seems gibberish
                 st.markdown(stylish_box(f"{idx}. {summarized_point}"), unsafe_allow_html=True)
         else:
             st.write("Failed to fetch the content.")
+
 
 if st.button("Go!"):
     process_url(url)
