@@ -63,6 +63,7 @@ def stylish_box(content):
     """
     return box_style.format(content=content)
 
+#link to statistics
 if url:
     statistics = process_url(url)
     if statistics:
