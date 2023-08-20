@@ -5,8 +5,6 @@ import requests
 import time
 import random
 import re
-import lxml
-
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -31,15 +29,11 @@ def extract_keywords(text, num=5):
     keywords = [word for word, pos in tagged if pos in ['NN', 'NNS', 'NNP', 'NNPS'] and word.lower() not in stopwords.words('english')]
     return keywords[:num]
 
-
-
-# Added and refined patterns to target data, findings, proofs, and studies.
 STATISTIC_PATTERNS = [
-    r'(\d{1,3}(?:,\d{3})*(?:\.\d+)?%?)',  # General numbers and percentages
-    r'(\d+\s*in\s*\d+)',  # Ratios like 1 in 5
-    r'(study|research|survey|data|finding)s?\s*(shows?|found|reveals?|suggests?|indicates?)',  # Indicating a study or finding
-    r'(one|two|three|four|five|six|seven|eight|nine|ten)\s*out of (ten|a hundred)',  # Written ratios
-    r'(evidence|proof|result)s?\s*(shows?|suggests?|indicates?)'  # Indicating evidence or proof
+    re.compile(r'(?P<stat>\d+%?\s?[-–—]\s?\d+%)'),
+    re.compile(r'(?P<stat>\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*(?:million|billion|trillion)?\b)'),
+    re.compile(r'(?P<stat>\b\d{1,3}(?:\.\d{3})*(?:,\d+)?\s*(?:million|billion|trillion)?\b)'),
+    re.compile(r'(?P<stat>\d+%?\s?(?:of|from|to|between)\s?.+?)\.')
 ]
 
 def chunk_text(text, max_length=1500):
@@ -181,43 +175,20 @@ def extract_statistic_from_url(url, keywords):
         return potential_statistics[0][0], url
     return None, url
 
-
 def process_url(url):
     show_loading_message()
     html_content = get_webpage_content(url)
     if html_content:
         text_content = extract_content_from_html(html_content)
-        chunks = [chunk for chunk in chunk_text(text_content) if is_valid_content(chunk)]
-        
-        progress = st.progress(0)
-        total_chunks = len(chunks)
-        for idx, point in enumerate(chunks[:10], 1):  # iterating over 'chunks' instead of 'aggregated_points'
-            
-            # Properly indented the API call and removed the disconnected piece of code
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
-                ]
-            )
-            
-            summarized_point = response.choices[0]["message"]["content"].strip()
-            summarized_point = point if not is_valid_content(summarized_point) else summarized_point
-
-            # Extract keywords from the summarized content
-            keywords = extract_keywords(summarized_point)
-
-            time.sleep(1.5)
-            search_query = f"statistics 2023 {summarized_point}"
-            # Passing keywords to extract_statistic_from_url
-            statistic, stat_url = extract_statistic_from_url(search_google(search_query), keywords)
-
-            if statistic:
-                content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to Clipboard</button>"
-                st.markdown(stylish_box(content), unsafe_allow_html=True)
-        progress.increment(1.0 / total_chunks)  # Assuming you want to increment the progress for each chunk.
-    else:
-        st.error("Error fetching the webpage content. Please ensure the URL is correct and try again.")
+        keywords = extract_keywords(text_content)
+        statistic, link = extract_statistic_from_url(url, keywords)
+        return statistic, link
+    return None, None
 
 if url:
-    process_url(url)
+    statistic, link = process_url(url)
+    if statistic:
+        st.markdown(stylish_box(f"<strong>Statistic:</strong> {statistic} <br> <strong>Link:</strong> <a href='{link}' target='_blank'>{link}</a>"), unsafe_allow_html=True)
+    else:
+        st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
+
