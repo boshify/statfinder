@@ -27,7 +27,7 @@ def extract_h1_or_title(url):
     return h1_heading
 
 def generate_statistic_search_queries(topic):
-    prompt = f"Provide 10 search queries someone might use to find statistics related to the topic: '{topic}'."
+    prompt = f"For the topic '{topic}', generate 10 search queries that someone might use to find statistics related to it:"
     response = openai.Completion.create(
       engine="davinci",
       prompt=prompt,
@@ -38,6 +38,7 @@ def generate_statistic_search_queries(topic):
     )
     queries = response.choices[0].text.strip().split("\n")
     return queries
+
 
 # Streamlit UI
 st.title("Statfinder")
