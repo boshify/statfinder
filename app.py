@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import requests
 import time
 import random
+import re
 
 # Load secrets
 secrets = st.secrets["secrets"]
@@ -13,6 +14,14 @@ OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
+
+# Regex patterns to identify sentences with potential statistics
+STATISTIC_PATTERNS = [
+    r'\d+%',             # Matches '78%'
+    r'1 in \d+',         # Matches '1 in 10'
+    r'\$\d+',            # Matches dollar values like '$111'
+    r'\d+(?:\.\d+)?',    # Matches decimal and non-decimal numbers
+]
 
 def chunk_text(text, max_length=1500):
     sentences = text.split('.')
@@ -93,29 +102,37 @@ def extract_content_from_html(html_content):
         script.extract()
     return " ".join(soup.stripped_strings)
 
-def show_loading_message(duration=6):  # default duration to 6 seconds, adjust as needed
+def show_loading_message(duration=6):
     loading_message_placeholder = st.empty()
     start_time = time.time()
     while time.time() - start_time < duration:
         loading_message_placeholder.text(random.choice(fun_messages))
         time.sleep(2)
 
-def summarize_text(text):
-    response = openai.Completion.create(
-        engine="davinci",
-        prompt=f"Provide a concise summary for the following statement:\n{text}",
-        max_tokens=50  # restrict to a shorter output
-    )
-    return response.choices[0].text.strip()
-
-
 def is_valid_content(sentence):
-    # Check if the content is likely meaningful
-    if len(sentence.split()) < 5:  # Too short
+    if len(sentence.split()) < 5:
         return False
-    if any(symbol in sentence for symbol in ['{', '}', '%', '=']):  # Likely code or gibberish
+    if any(symbol in sentence for symbol in ['{', '}', '%', '=']):
         return False
     return True
+
+def search_google(query):
+    url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API_KEY}&cx={CSE_ID}"
+    response = requests.get(url).json()
+    return response['items'][0]['link']
+
+def extract_statistic_from_url(url):
+    page_content = get_webpage_content(url)
+    page_text = extract_content_from_html(page_content)
+    
+    for pattern in STATISTIC_PATTERNS:
+        matches = re.findall(pattern, page_text)
+        for match in matches:
+            start_idx = page_text.find(match)
+            surrounding_text = page_text[max(0, start_idx - 30):min(start_idx + len(match) + 30, len(page_text))]
+            if len(surrounding_text.split()) > 3:
+                return surrounding_text.strip(), url
+    return None, url
 
 def process_url(url):
     with st.spinner():
@@ -130,7 +147,6 @@ def process_url(url):
             progress = st.progress(0)
             total_chunks = len(chunks)
             for idx, text_chunk in enumerate(chunks, 1):
-                # Changes here for gpt-3.5-turbo
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[
@@ -144,9 +160,7 @@ def process_url(url):
                 aggregated_points.extend(key_points)
                 progress.progress(int((idx/total_chunks) * 100))
             
-            # Further summarize each point (with fallback)
             for idx, point in enumerate(aggregated_points[:10], 1):
-                # Changes here for gpt-3.5-turbo
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[
@@ -155,16 +169,21 @@ def process_url(url):
                 )
                 summarized_point = response.choices[0]["message"]["content"].strip()
                 if not is_valid_content(summarized_point):
-                    summarized_point = point  # Fallback to original summary if the new one seems gibberish
-                st.markdown(stylish_box(f"{idx}. {summarized_point}"), unsafe_allow_html=True)
+                    summarized_point = point
+
+                search_query = f"statistics 2023 {summarized_point}"
+                statistic, stat_url = extract_statistic_from_url(search_google(search_query))
+                
+                if statistic:
+                    content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to clipboard</button>"
+                    st.markdown(stylish_box(content), unsafe_allow_html=True)
+
         else:
-            st.write("Failed to fetch the content.")
+            st.error(f"Unable to fetch the content from {url}. Please ensure it's accessible.")
 
-
-if st.button("Go!"):
+if url and url != "Enter a URL for a page or blog post to grab stats for..":
     process_url(url)
 
+st.markdown("Developed with 💙 by Your Name.")
+st.markdown("Icon made by [author](link) from www.flaticon.com")
 
-# Footer (About Info)
-st.image("https://jonathanboshoff.com/wp-content/uploads/2021/01/Jonathan-Boshoff-2.png", width=50)
-st.write("[Made by: Jonathan Boshoff](https://jonathanboshoff.com)")
