@@ -1,6 +1,14 @@
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
+import openai
+
+# Load secrets
+secrets = st.secrets["secrets"]
+OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
+
+# Initialize OpenAI
+openai.api_key = OPENAI_API_KEY
 
 def extract_headings(url):
     headers = {
@@ -12,20 +20,37 @@ def extract_headings(url):
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    headings = []
-    for tag in soup.find_all(['h1', 'h2', 'h3']):
-        indent = '    ' * (int(tag.name[1]) - 1)
-        headings.append(f"{indent}<{tag.name}>{tag.text.strip()}</{tag.name}>")
-
+    headings = [tag.text.strip() for tag in soup.find_all(['h1', 'h2', 'h3'])]
     return headings
 
-st.title("Heading Extractor")
+def rank_headings_for_statistics(headings):
+    prompt = "Rank the following headings based on their relevance for adding a statistic from a reputable source:\n"
+    for idx, heading in enumerate(headings):
+        prompt += f"{idx + 1}. {heading}\n"
+
+    response = openai.Completion.create(
+      engine="davinci",
+      prompt=prompt,
+      max_tokens=500,
+      n=1,
+      stop=None,
+      temperature=0.5
+    )
+
+    ranked_headings = response.choices[0].text.strip().split("\n")
+    # Extract the original headings from the ranked list
+    ranked_headings = [headings[int(line.split('.')[0]) - 1] for line in ranked_headings if line.split('.')[0].isdigit()]
+
+    return ranked_headings[:10]
+
+st.title("Top 10 Headings for Statistics")
 
 # User input
 url = st.text_input("Enter a URL:")
 
 if url:
-    st.write("Extracted Headings:")
     headings = extract_headings(url)
-    for heading in headings:
+    top_headings = rank_headings_for_statistics(headings)
+    st.write("Top 10 Headings for Adding Statistics:")
+    for heading in top_headings:
         st.write(heading)
