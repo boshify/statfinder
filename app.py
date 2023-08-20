@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import openai
 from bs4 import BeautifulSoup
+import re
 
 # Set Streamlit page configuration
 st.set_page_config(
@@ -15,6 +16,17 @@ API_KEY = st.secrets["GOOGLE_API_KEY"]
 CSE_ID = st.secrets["CSE_ID"]
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
+
+# Basic trust scores for domains
+TRUST_SCORES = {
+    'gov': 10,
+    'edu': 9,
+    'org': 8,
+    'com': 7,
+    'net': 6,
+    'io': 5,
+    'co': 4
+}
 
 def extract_text_from_url(url):
     headers = {
@@ -69,12 +81,19 @@ def fetch_stat_from_google(query):
     }
     response = requests.get(GOOGLE_CSE_URL, params=params)
     data = response.json()
+    results = []
     if data.get("items"):
         for item in data["items"]:
             # Ensure the statistic contains a number
-            if any(char.isdigit() for char in item["title"]):
-                return {"stat": item["title"], "link": item["link"]}
-    return None
+            if any(char.isdigit() for char in item["snippet"]):
+                domain = item["link"].split("//")[-1].split("/")[0].split('.')[-2]
+                trust_score = TRUST_SCORES.get(domain, 3)
+                results.append({
+                    "stat": item["snippet"],
+                    "link": item["link"],
+                    "trust_score": trust_score
+                })
+    return sorted(results, key=lambda x: x["trust_score"], reverse=True)
 
 # Streamlit layout and components
 c30, c31 = st.columns([10.5, 1])
@@ -90,14 +109,17 @@ if url:
     text = extract_text_from_url(url)
     if text:
         summarized_text = summarize_text_with_gpt(text[:2000])  # Limiting the text to the first 2000 characters
-        st.write(f"Summarized Text: {summarized_text[:500]}...")  # Displaying the first 500 characters
+        st.write(f"**Summarized Text:**\n\n{summarized_text[:500]}...")  # Displaying the first 500 characters
+        st.markdown("---")
         queries = generate_queries_with_gpt(summarized_text)
         for query in queries:
-            stat_data = fetch_stat_from_google(query)
-            if stat_data:
+            stats_data = fetch_stat_from_google(query)
+            for stat_data in stats_data:
                 st.markdown(f"**Statistic:** {stat_data['stat']}")
                 st.markdown(f"**Statistic URL:** [{stat_data['link']}]({stat_data['link']})")
-                st.markdown(f"**Example Use:** `{query} [source]({stat_data['link']})`")
+                st.markdown(f"**Trust Score:** {stat_data['trust_score']}/10")
+                example_use = re.sub(r'\d+', '', query)  # Remove numbers
+                st.markdown(f"**Example Use:** `{example_use} [source]({stat_data['link']})`")
                 st.markdown("---")
     else:
         st.error("Unable to extract content from the provided URL.")
