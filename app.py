@@ -27,9 +27,9 @@ if url:
         if h1_tags and h2_tags:
             h1_text = h1_tags[0].get_text()
 
-            # Display h2 + h1 formatted list
+            # Display "statistics for: h2 + h1" formatted list
             for h2 in h2_tags:
-                st.write(f'"{h2.get_text()} + {h1_text}"')
+                st.write(f'statistics for: "{h2.get_text()} + {h1_text}"')
 
         else:
             st.warning('No H1 or H2 tags found on the provided URL.')
