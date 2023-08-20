@@ -193,7 +193,7 @@ if url:
                 f"<strong>Example Use:</strong> {example_use}"
             ), unsafe_allow_html=True)
             unique_key = "copy_to_clipboard_" + str(hash(statistic))
-if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
+            if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
 
     else:
         st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
