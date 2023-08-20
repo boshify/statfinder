@@ -21,9 +21,10 @@ def extract_key_points_from_text(text):
 
 # Fetch statistics related to the key points
 def fetch_statistics(query):
-    service = build("customsearch", "v1", developerKey=st.secrets["GOOGLE_API_KEY"])
-    res = service.cse().list(q=query, cx=st.secrets["CSE_ID"], num=1).execute()
+    service = build("customsearch", "v1", developerKey=GOOGLE_API_KEY)
+    res = service.cse().list(q=query, cx=CSE_ID, num=1).execute()
     return res['items'][0] if 'items' in res else None
+
 
 # Streamlit UI
 st.title("URL Statistics Enhancer")
