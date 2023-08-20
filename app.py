@@ -6,11 +6,12 @@ from googleapiclient.discovery import build
 from urllib.parse import urlparse
 
 # Set up the OpenAI API key
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_key = st.secrets["secrets"]["OPENAI_API_KEY"]
 
 # Set up the Google Custom Search API credentials
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-CSE_ID = st.secrets["CSE_ID"]
+GOOGLE_API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
+CSE_ID = st.secrets["secrets"]["CSE_ID"]
+
 
 def extract_content_from_url(url):
     response = requests.get(url)
