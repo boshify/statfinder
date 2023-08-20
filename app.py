@@ -7,6 +7,15 @@ import random
 import re
 import lxml
 
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.tag import pos_tag
+
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('stopwords')
+
 # Load secrets
 secrets = st.secrets["secrets"]
 GOOGLE_API_KEY = secrets["GOOGLE_API_KEY"]
@@ -15,6 +24,14 @@ OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
+
+def extract_keywords(text, num=5):
+    tokens = word_tokenize(text)
+    tagged = pos_tag(tokens)
+    keywords = [word for word, pos in tagged if pos in ['NN', 'NNS', 'NNP', 'NNPS'] and word.lower() not in stopwords.words('english')]
+    return keywords[:num]
+
+
 
 # Added and refined patterns to target data, findings, proofs, and studies.
 STATISTIC_PATTERNS = [
@@ -176,35 +193,27 @@ def process_url(url):
         total_chunks = len(chunks)
         aggregated_points = []
         
-        for idx, text_chunk in enumerate(chunks):
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}"}
-                ]
-            )
-            key_points = response.choices[0]["message"]["content"].strip().split("\n")
-            key_points = [point for point in key_points if 5 <= len(point.split()) <= 150]
-            aggregated_points.extend(key_points)
-            progress.progress(int((idx/total_chunks) * 100))
-        
         for idx, point in enumerate(aggregated_points[:10], 1):
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
-                ]
-            )
-            summarized_point = response.choices[0]["message"]["content"].strip()
-            summarized_point = point if not is_valid_content(summarized_point) else summarized_point
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "user", "content": f"Provide a concise summary for the following statement:\n{point}"}
+            ]
+        )
+        summarized_point = response.choices[0]["message"]["content"].strip()
+        summarized_point = point if not is_valid_content(summarized_point) else summarized_point
 
-            time.sleep(1.5)
-            search_query = f"statistics 2023 {summarized_point}"
-            statistic, stat_url = extract_statistic_from_url(search_google(search_query))
-            
-            if statistic:
-                content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to Clipboard</button>"
-                st.markdown(stylish_box(content), unsafe_allow_html=True)
+        # Extract keywords from the summarized content
+        keywords = extract_keywords(summarized_point)
+
+        time.sleep(1.5)
+        search_query = f"statistics 2023 {summarized_point}"
+        # Passing keywords to extract_statistic_from_url
+        statistic, stat_url = extract_statistic_from_url(search_google(search_query), keywords)
+
+        if statistic:
+            content = f"{idx}. {summarized_point}<br><br>Statistic: {statistic}<br>URL: {stat_url}<br><button onclick=\"navigator.clipboard.writeText('{statistic} - Source: {stat_url}')\">Copy to Clipboard</button>"
+            st.markdown(stylish_box(content), unsafe_allow_html=True)
     else:
         st.error("Error fetching the webpage content. Please ensure the URL is correct and try again.")
 
