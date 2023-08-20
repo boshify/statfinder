@@ -14,7 +14,7 @@ OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
 
-# Regex patterns to identify potential statistics
+# Regex patterns for potential statistics
 STATISTIC_PATTERNS = [
     r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',  
     r'1 in \d+',                      
@@ -79,6 +79,9 @@ def main():
                 st.warning("No statistics found in the provided URL.")
                 return
 
+            progress_bar = st.progress(0)
+            total_stats = len(stats)
+            
             for idx, stat in enumerate(stats, 1):
                 search_query = f"statistics 2023 {stat}"
                 link = search_google(search_query)
@@ -86,6 +89,8 @@ def main():
                     st.markdown(f"**{idx}. Statistic:** {stat} [Source]({link})")
                 else:
                     st.markdown(f"**{idx}. Statistic:** {stat}")
+                
+                progress_bar.progress(idx/total_stats)
 
     st.sidebar.header("About")
     st.sidebar.write("StatGrabber 2.0 is an enhanced AI-powered tool to help you quickly discover and cite statistics from your content.")
