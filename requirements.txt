@@ -4,3 +4,4 @@ beautifulsoup4==4.10.0  # Update to the latest version if needed.
 openai==0.27.0  # You can adjust this to the latest OpenAI package version.
 google-api-python-client==2.21.0  # You specified this version so I kept it unchanged.
 lxml==4.6.3  # As of my last update. Update if needed.
+nltk
