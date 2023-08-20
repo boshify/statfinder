@@ -12,14 +12,16 @@ GOOGLE_API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
 CSE_ID = st.secrets["secrets"]["CSE_ID"]
 
 def extract_content_from_url(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
+        if response.status_code == 403:
+            return "403 Forbidden"
         soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # Extracting headers, paragraphs, and list items
         tags = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li'])
         content = ' '.join([tag.text for tag in tags])
-        
         return content
     except Exception as e:
         st.write(f"Error in extracting content: {e}")
@@ -30,7 +32,7 @@ def summarize_text_with_gpt(text):
         response = openai.Completion.create(
             engine="davinci",
             prompt=f"Provide a concise summary of the following content:\n\n{text}",
-            max_tokens=300  # Increased token limit
+            max_tokens=300
         )
         return response.choices[0].text.strip()
     except Exception as e:
@@ -67,18 +69,6 @@ def fetch_statistics(queries):
         st.write(f"Error in fetching statistics: {e}")
         return []
 
-def generate_trust_score_with_gpt(statistic_title):
-    try:
-        response = openai.Completion.create(
-            engine="davinci",
-            prompt=f"How trustworthy is the following statistic title: \"{statistic_title}\"? Rate from 1 to 10.",
-            max_tokens=10
-        )
-        return response.choices[0].text.strip()
-    except Exception as e:
-        st.write(f"Error in generating trust score: {e}")
-        return "Error"
-
 def generate_example_use_with_gpt(statistic_title, statistic_url):
     try:
         response = openai.Completion.create(
@@ -100,7 +90,7 @@ if url:
 
     # Extract and summarize the content
     extracted_content = extract_content_from_url(url)
-    st.write("Extracted Content:", extracted_content)
+    st.write("Extracted Content:", extracted_content[:1000] + "...")  # Displaying the first 1000 characters for brevity
 
     summarized_text = summarize_text_with_gpt(extracted_content)
     st.write("Summarized Text:", summarized_text)
@@ -114,11 +104,11 @@ if url:
 
     # Display the results
     st.write("Results:")
-    for stat in stats:
-        trust_score = generate_trust_score_with_gpt(stat['title'])
+    for i, stat in enumerate(stats[:10]):  # Limiting to 10 results
         example_use = generate_example_use_with_gpt(stat['title'], stat['link'])
         
-        st.write("Statistic:", stat['title'])
+        st.write(f"Statistic {i+1}:", stat['title'])
         st.write("Statistic URL:", stat['link'])
-        st.write("Trust Score:", trust_score)
         st.write("Example Use:", example_use)
+        if st.button("Copy to Clipboard", key=f"copy_{i}"):
+            st.copied_text(stat['title'] + "\n" + stat['link'] + "\n" + example_use)
