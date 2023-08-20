@@ -27,7 +27,7 @@ def extract_h1_or_title(url):
     return h1_heading
 
 def generate_statistic_keywords(topic):
-    prompt = f"Given the topic '{topic}', list 10 ideas for search queries to find statistics that are specific to the topic."
+    prompt = f"Given the topic '{topic}', list 10 unique ideas for search queries someone would use to find statistics specific to the h1/page title."
     response = openai.Completion.create(
       engine="davinci",
       prompt=prompt,
@@ -40,14 +40,14 @@ def generate_statistic_keywords(topic):
     return keywords
 
 # Streamlit UI
-st.title("10 statistic queries")
+st.title("Statfinder")
 url = st.text_input("Enter a URL:")
 
 if url:
     topic = extract_h1_or_title(url)
     if topic:
         keywords = generate_statistic_keywords(topic)
-        st.subheader(f"10 Ideas for Statistic Keywords related to '{topic}':")
+        st.subheader(f"10 Ideas for Statistic searches for '{topic}':")
         for keyword in keywords:
             st.write(keyword)
     else:
