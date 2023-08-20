@@ -3,82 +3,87 @@ import openai
 import requests
 from bs4 import BeautifulSoup
 
-# Initialize OpenAI API
-try:
-    openai.api_key = st.secrets["openai_api_key"]
-except KeyError:
-    st.error("Please set up the OpenAI API key in your secrets.")
+# Set up the OpenAI API key from Streamlit secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Streamlit Layout
-st.title("URL Statistics Enhancer")
-url = st.text_input("Insert the URL you want to enhance with statistics:")
+# Google Search function
+def google_search(query, api_key, cse_id, **kwargs):
+    service_url = 'https://www.googleapis.com/customsearch/v1'
+    params = {
+        'key': api_key,
+        'cx': cse_id,
+        'q': query,
+    }
+    params.update(kwargs)
+    response = requests.get(service_url, params=params)
+    response.raise_for_status()
+    return response.json()['items']
 
+# Extract content from URL
 def extract_content_from_url(url):
     try:
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
         paragraphs = soup.find_all('p')
-        text = " ".join([para.text for para in paragraphs])
-        return text
-    except:
-        return "Unable to extract content from the provided URL."
+        content = ' '.join([para.text for para in paragraphs])
+        return content
+    except Exception as e:
+        st.error(f"Unable to extract content from the provided URL. {e}")
+        return None
 
+# Summarize text with GPT-3
 def summarize_text_with_gpt(text):
     try:
         response = openai.Completion.create(
-            engine="text-davinci-002",
+            engine="davinci",
             prompt=f"Summarize the following text:\n\n{text}",
             max_tokens=150
         )
         return response.choices[0].text.strip()
     except Exception as e:
-        return f"Error in summarize_text_with_gpt: {str(e)}"
+        st.error(f"Error in summarize_text_with_gpt: {e}")
+        return None
 
+# Generate queries with GPT-3
 def generate_queries_with_gpt(text):
     try:
         response = openai.Completion.create(
-            engine="text-davinci-002",
-            prompt=f"Generate 10 questions based on the following text that could be enhanced with statistics:\n\n{text}",
+            engine="davinci",
+            prompt=f"Generate 10 search queries based on the following text to find relevant statistics:\n\n{text}",
             max_tokens=200,
             n=10,
-            stop=None
+            stop=["\n"]
         )
-        queries = [choice.text.strip() for choice in response.choices]
-        return queries
+        return [choice.text.strip() for choice in response.choices]
     except Exception as e:
-        return f"Error in generate_queries_with_gpt: {str(e)}"
-
-def fetch_stat_from_google(query):
-    try:
-        search_url = f"https://www.googleapis.com/customsearch/v1?q={query} statistics&key={st.secrets['google_api_key']}&cx={st.secrets['google_cse_id']}"
-        response = requests.get(search_url).json()
-        stats = []
-        for item in response['items']:
-            stats.append({
-                "stat": item['title'],
-                "link": item['link']
-            })
-        return stats
-    except:
+        st.error(f"Error in generate_queries_with_gpt: {e}")
         return []
 
+# Main app
+st.title("URL Statistics Enhancer")
+
+# Input URL
+url = st.text_input("Insert the URL you want to enhance with statistics:")
+
 if url:
-    extracted_text = extract_content_from_url(url)
-    st.write("Extracted Text:")
-    st.write(extracted_text)
-    
-    summarized_text = summarize_text_with_gpt(extracted_text)
-    st.write("Summarized Text:")
-    st.write(summarized_text)
-    
-    queries = generate_queries_with_gpt(summarized_text)
-    st.write("Generated Queries:")
-    st.write(queries)
-    
-    for query in queries:
-        stats = fetch_stat_from_google(query)
-        for stat in stats:
-            st.write(f"Statistic: {stat['stat']}")
-            st.write(f"Statistic URL: {stat['link']}")
-            st.write(f"Example Use: . According to a recent study, {query}. [source]({stat['link']})")
-            st.write("------")
+    # Extract content
+    content = extract_content_from_url(url)
+    if content:
+        # Summarize content
+        summarized_text = summarize_text_with_gpt(content)
+        st.write("Summarized Text:\n")
+        st.write(summarized_text)
+
+        # Generate search queries
+        queries = generate_queries_with_gpt(summarized_text)
+        for query in queries:
+            try:
+                # Search Google for statistics
+                results = google_search(query, st.secrets["GOOGLE_API_KEY"], st.secrets["CSE_ID"], num=1)
+                for result in results:
+                    st.write(f"Statistic: {result['title']}\n")
+                    st.write(f"Statistic URL: {result['link']}\n")
+                    st.write(f"Example Use: {summarized_text} [source]({result['link']})\n")
+            except Exception as e:
+                st.error(f"Error while searching for statistics: {e}")
+
