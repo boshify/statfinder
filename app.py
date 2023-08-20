@@ -7,8 +7,6 @@ import openai
 secrets = st.secrets["secrets"]
 OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 
-# Initialize OpenAI
-openai.api_key = OPENAI_API_KEY
 
 def extract_headings(url):
     headers = {
@@ -20,11 +18,12 @@ def extract_headings(url):
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    headings = [tag.text.strip() for tag in soup.find_all(['h1', 'h2', 'h3'])]
+    headings = []
+    for tag in soup.find_all(['h1', 'h2', 'h3']):
+        headings.append((tag.text.strip(), tag.name))
     return headings
 
 def evaluate_heading_relevance(heading, level):
-    # Weigh the heading based on its level
     weight = 1
     if level == 'h2':
         weight = 1.5
@@ -47,20 +46,15 @@ def evaluate_heading_relevance(heading, level):
         return 0
 
 def rank_headings_for_statistics(headings):
-    # Exclude generic headings
     exclude_list = ["Platform", "Footer", "Contact Us", "Learn", "Privacy & Terms"]
-    unique_headings = list(set(headings) - set(exclude_list))
+    unique_headings = list(set([heading for heading, level in headings if heading not in exclude_list]))
 
-    scores = [(heading, evaluate_heading_relevance(heading, level)) for heading, level in unique_headings]
-    # Sort by scores in descending order
+    scores = [(heading, evaluate_heading_relevance(heading, level)) for heading, level in headings if heading not in exclude_list]
     sorted_headings = [item[0] for item in sorted(scores, key=lambda x: x[1], reverse=True)]
     return sorted_headings[:10]
 
-
-
+# Streamlit UI
 st.title("Top 10 Headings for Statistics")
-
-# User input
 url = st.text_input("Enter a URL:")
 
 if url:
