@@ -38,8 +38,15 @@ def rank_headings_for_statistics(headings):
     )
 
     ranked_output = response.choices[0].text.strip().split("\n")
+    
     # Extract the original headings from the ranked list
-    ranked_headings = [headings[int(line.split('.')[0]) - 1] for line in ranked_output if line.split('.')[0].isdigit()]
+    ranked_headings = []
+    for line in ranked_output:
+        index_str = line.split('.')[0]
+        if index_str.isdigit():
+            index = int(index_str) - 1
+            if 0 <= index < len(headings):
+                ranked_headings.append(headings[index])
 
     return ranked_headings[:10]
 
