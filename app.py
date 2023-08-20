@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import json
+import openai
 
 # Set Streamlit page configuration
 st.set_page_config(
@@ -9,18 +10,20 @@ st.set_page_config(
     layout="wide",
 )
 
-# Your site, API key, and Custom Search Engine ID
-api_key = st.text_input("Enter your Google API Key")
-cse_id = st.text_input("Enter your Custom Search Engine ID")
+# Fetch secrets
+API_KEY = st.secrets["GOOGLE_API_KEY"]
+CSE_ID = st.secrets["CSE_ID"]
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+openai.api_key = OPENAI_API_KEY
 
-def fetch_stats_from_google(query, api_key, cse_id):
+def fetch_stats_from_google(query):
     stats = []
     try:
         GOOGLE_CSE_URL = "https://www.googleapis.com/customsearch/v1"
         params = {
             'q': query,
-            'key': api_key,
-            'cx': cse_id,
+            'key': API_KEY,
+            'cx': CSE_ID,
         }
         response = requests.get(GOOGLE_CSE_URL, params=params)
         data = response.json()
@@ -33,6 +36,17 @@ def fetch_stats_from_google(query, api_key, cse_id):
         stats.append({"stat": f"Error: {str(e)}", "link": "#"})
     return stats
 
+def get_insight_from_openai(link):
+    try:
+        response = openai.Completion.create(
+          engine="davinci",
+          prompt=f"Provide a brief insight about this link: {link}",
+          max_tokens=100
+        )
+        return response.choices[0].text.strip()
+    except:
+        return "Unable to fetch insight."
+
 # Streamlit layout and components
 c30, c31 = st.columns([10.5, 1])
 
@@ -43,8 +57,8 @@ with st.expander("ℹ - About the App"):
     st.write(
         """
 - This application aims to find relevant statistics about the topic of a given URL.
-- To do so, simply enter your Google API Key, Custom Search Engine ID, and the URL you're interested in.
-- The app will provide you with a list of relevant statistics and links.
+- To do so, simply enter the URL you're interested in.
+- The app will provide you with a list of relevant statistics, links, and insights.
 	    """
     )
 
@@ -56,15 +70,18 @@ with c1:
     url = st.text_input('Insert the URL you want to search for statistics:')
     
     if url:
-        stats = fetch_stats_from_google(url, api_key, cse_id)
+        stats = fetch_stats_from_google(url)
 
         with c2:
             for s in stats:
                 if "Error" in s['stat']:
                     st.error(s['stat'])  # Display the error message
                 else:
-                    st.write(f"Stat: {s['stat']}")
-                    st.write(f"Link: {s['link']}")
-                    st.write(f"Example Usage: {s['stat']} [source]({s['link']})")
+                    insight = get_insight_from_openai(s['link'])
+                    st.markdown(f"**Stat:** {s['stat']}")
+                    st.markdown(f"**Link:** [Here]({s['link']})")
+                    st.markdown(f"**Insight:** {insight}")
+                    st.markdown(f"**Example Usage:** {s['stat']} [source]({s['link']})")
+                    st.markdown("---")
 
 st.markdown("----")
