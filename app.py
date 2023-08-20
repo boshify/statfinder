@@ -48,11 +48,8 @@ def rank_headings_for_statistics(h1_heading, other_headings):
     # Evaluate relevance of each heading
     scores = [(heading, evaluate_heading_relevance(heading, h1_heading)) for heading, _ in other_headings]
 
-    # Filter out headings with low relevance scores (e.g., score < 5)
-    relevant_headings = [item for item in scores if item[1] >= 5]
-
-    # Sort the relevant headings
-    sorted_headings = [item[0] for item in sorted(relevant_headings, key=lambda x: x[1], reverse=True)]
+    # Sort the headings based on their relevance scores
+    sorted_headings = [item[0] for item in sorted(scores, key=lambda x: x[1], reverse=True)]
     return sorted_headings[:10]
 
 # Streamlit UI
