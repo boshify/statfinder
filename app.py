@@ -4,8 +4,11 @@ import openai
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 
-# Set up OpenAI API
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Accessing the secrets
+GOOGLE_API_KEY = st.secrets.GOOGLE_API_KEY
+CSE_ID = st.secrets.CSE_ID
+OPENAI_API_KEY = st.secrets.OPENAI_API_KEY
+
 
 # Extract key points from text using OpenAI
 def extract_key_points_from_text(text):
