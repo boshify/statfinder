@@ -16,13 +16,12 @@ OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
 
-# Regex patterns to identify sentences with potential statistics
+# More refined patterns targeting statistics, studies, and findings.
 STATISTIC_PATTERNS = [
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',  
-    r'1 in \d+',                      
-    r'1 of \d+',                      
-    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?',  
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',    
+    r'(\d{1,3}(?:,\d{3})*(?:\.\d+)?%?)',  # General numbers and percentages
+    r'(\d+\s*in\s*\d+)',  # Ratios like 1 in 5
+    r'(study|research|survey|data|finding)s?\s*(shows?|found|reveals?|suggests?)',  # Words indicating a study or finding
+    r'(one|two|three|four|five|six|seven|eight|nine|ten)\s*out of (ten|a hundred)',  # Written ratios
 ]
 
 def chunk_text(text, max_length=1500):
@@ -140,8 +139,13 @@ def extract_statistic_from_url(url):
         matches = re.finditer(pattern, page_text)
         for match in matches:
             start_idx = match.start()
-            # Reduced the range of surrounding text extraction to make it concise.
-            surrounding_text = page_text[max(0, start_idx - 30):min(start_idx + match.end() + 30, len(page_text))]
+            end_idx = match.end()
+
+            # Extract sentences containing the matched pattern for more meaningful context.
+            start_sentence_idx = page_text.rfind('.', 0, start_idx) + 1  # start of the sentence
+            end_sentence_idx = page_text.find('.', end_idx)  # end of the sentence
+            surrounding_text = page_text[start_sentence_idx:end_sentence_idx + 1].strip()
+            
             if is_valid_content(surrounding_text):
                 potential_statistics.append(surrounding_text.strip())
 
