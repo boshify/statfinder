@@ -20,11 +20,13 @@ st.markdown(
         }
         h1 {
             font-size: 50px;
+            margin-bottom: 30px;
         }
         img {
             width: 50px;
             height: 50px;
             border-radius: 50%;
+            margin-top: 30px;
         }
         .footer {
             position: absolute;
@@ -39,7 +41,6 @@ st.markdown(
 )
 
 st.title("StatGrabber")
-
 url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
 
 if st.button("Go!"):
