@@ -15,8 +15,11 @@ def extract_content_from_url(url):
     try:
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
-        paragraphs = soup.find_all('p')
-        content = ' '.join([p.text for p in paragraphs])
+        
+        # Extracting headers, paragraphs, and list items
+        tags = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li'])
+        content = ' '.join([tag.text for tag in tags])
+        
         return content
     except Exception as e:
         st.write(f"Error in extracting content: {e}")
@@ -26,8 +29,8 @@ def summarize_text_with_gpt(text):
     try:
         response = openai.Completion.create(
             engine="davinci",
-            prompt=f"Summarize the following text:\n\n{text}",
-            max_tokens=150
+            prompt=f"Provide a concise summary of the following content:\n\n{text}",
+            max_tokens=300  # Increased token limit
         )
         return response.choices[0].text.strip()
     except Exception as e:
