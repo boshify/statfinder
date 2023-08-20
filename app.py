@@ -21,16 +21,19 @@ def extract_headings(url):
     soup = BeautifulSoup(response.content, 'html.parser')
 
     headings = []
-    for tag in soup.find_all(['h1', 'h2', 'h3']):
+    for tag in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
         headings.append((tag.text.strip(), tag.name))
     return headings
 
 def evaluate_heading_relevance(heading, level):
-    weight = 1
-    if level == 'h2':
-        weight = 1.5
-    elif level == 'h3':
-        weight = 2
+    weight = {
+        'h1': 1,
+        'h2': 1.2,
+        'h3': 1.4,
+        'h4': 1.6,
+        'h5': 1.8,
+        'h6': 2
+    }.get(level, 1)
 
     prompt = f"On a scale of 1 to 10, rate the suitability of the heading '{heading}' for adding a statistic from a reputable source (10 being highly suitable)."
     response = openai.Completion.create(
@@ -48,10 +51,10 @@ def evaluate_heading_relevance(heading, level):
         return 0
 
 def rank_headings_for_statistics(headings):
-    exclude_list = ["Platform", "Footer", "Contact Us", "Learn", "Privacy & Terms"]
-    unique_headings = list(set([heading for heading, level in headings if heading not in exclude_list]))
+    # Ensure unique headings
+    unique_headings = list(set(headings))
 
-    scores = [(heading, evaluate_heading_relevance(heading, level)) for heading, level in headings if heading not in exclude_list]
+    scores = [(heading, evaluate_heading_relevance(heading, level)) for heading, level in unique_headings]
     sorted_headings = [item[0] for item in sorted(scores, key=lambda x: x[1], reverse=True)]
     return sorted_headings[:10]
 
@@ -62,7 +65,6 @@ url = st.text_input("Enter a URL:")
 if url:
     headings = extract_headings(url)
     top_headings = rank_headings_for_statistics(headings)
-    st.write("Top 10 Headings for Adding Statistics:")
+    st.subheader("Top 10 Headings for Adding Statistics:")  # Using subheader for better formatting
     for heading in top_headings:
         st.write(heading)
-
