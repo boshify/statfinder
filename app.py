@@ -103,10 +103,11 @@ if st.button("Go!"):
         text_content = extract_content_from_html(html_content)
         chunks = chunk_text(text_content)
         aggregated_points = []
+        chunks = [chunk for chunk in chunks if len(chunk.split()) > 5]
         for text_chunk in chunks:
             response = openai.Completion.create(
             engine="davinci",
-            prompt=f"Summarize the following content in one sentence each:\n{text_chunk}",
+            prompt=f"Provide concise one-sentence summaries for the main ideas in the following content:\n{text_chunk}",
             max_tokens=150  # adjust as needed
             )
 
