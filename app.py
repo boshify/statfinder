@@ -12,7 +12,6 @@ OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
 
-# Add the chunk_text function here
 def chunk_text(text, max_length=1500):
     sentences = text.split('.')
     chunks = []
@@ -27,28 +26,27 @@ def chunk_text(text, max_length=1500):
         chunks.append(chunk)
     return chunks
 
-# Function to get webpage content
 def get_webpage_content(url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
         return response.text
-    except Exception as e:
-        st.write(f"Error fetching the URL: {e}")
+    else:
         return None
 
-# Function to extract content from the HTML
-def extract_content_from_html(html_content):
-    soup = BeautifulSoup(html_content, 'html.parser')
-    # This is just a basic extraction, and might need adjustments
-    for script in soup(["script", "style"]):
-        script.extract()
-    return " ".join(soup.stripped_strings)
+def extract_content_from_html(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    for script in soup(['script', 'style']):
+        script.extract()  # Remove script and style tags
+    text = soup.get_text()
+    # Split the text by lines and remove empty lines
+    lines = (line.strip() for line in text.splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    text = '\n'.join(chunk for chunk in chunks if chunk)
+    return text
 
-#stylish box output
 def stylish_box(content):
     box_style = """
     <div style="
@@ -62,8 +60,6 @@ def stylish_box(content):
     """
     return box_style.format(content=content)
 
-
-# Styling
 st.markdown(
     """
     <style>
@@ -91,27 +87,6 @@ st.write("Enter a URL and find statistics you can link to quickly!")
 
 url = st.text_input("Enter URL:", "Enter a URL for a page or blog post to grab stats for..")
 
-def get_webpage_content(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.text
-    else:
-        return None
-
-def extract_content_from_html(html):
-    soup = BeautifulSoup(html, 'html.parser')
-    for script in soup(['script', 'style']):
-        script.extract()  # Remove script and style tags
-    text = soup.get_text()
-    # Split the text by lines and remove empty lines
-    lines = (line.strip() for line in text.splitlines())
-    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-    text = '\n'.join(chunk for chunk in chunks if chunk)
-    return text
-
 if st.button("Go!"):
     html_content = get_webpage_content(url)
     if html_content:
@@ -133,10 +108,9 @@ if st.button("Go!"):
 
             aggregated_points.extend(key_points)
         
-# Display the top 10 key points
-for idx, point in enumerate(aggregated_points[:10], 1):
-    st.markdown(stylish_box(f"{idx}. {point}"), unsafe_allow_html=True)
-
+        # Display the top 10 key points
+        for idx, point in enumerate(aggregated_points[:10], 1):
+            st.markdown(stylish_box(f"{idx}. {point}"), unsafe_allow_html=True)
     else:
         st.write("Failed to fetch the content.")
 
