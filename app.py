@@ -7,10 +7,14 @@ st.title('H1 and H2 Extractor')
 # Input for URL
 url = st.text_input('Enter the URL:')
 
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
+
 if url:
     try:
         # Fetch the content of the URL
-        response = requests.get(url)
+        response = requests.get(url, headers=HEADERS)
         response.raise_for_status()
 
         # Parse the page using BeautifulSoup
