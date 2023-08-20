@@ -100,13 +100,14 @@ def show_loading_message(duration=6):  # default duration to 6 seconds, adjust a
         loading_message_placeholder.text(random.choice(fun_messages))
         time.sleep(2)
 
-def summarize_text(text, max_tokens=10):
+def summarize_text(text):
     response = openai.Completion.create(
         engine="davinci",
-        prompt=f"Summarize the following in one short phrase:\n{text}",
-        max_tokens=max_tokens
+        prompt=f"Provide a very concise summary or keyword phrase for the following statement:\n{text}",
+        max_tokens=10  # restrict to a shorter output
     )
     return response.choices[0].text.strip()
+
 
 def is_valid_content(sentence):
     # Check if the content is likely meaningful
