@@ -1,10 +1,3 @@
-# Requirements:
-# streamlit
-# requests
-# beautifulsoup4
-# openai
-# google-api-python-client==2.21.0
-
 import streamlit as st
 import openai
 import requests
@@ -17,6 +10,25 @@ openai.api_key = st.secrets["secrets"]["OPENAI_API_KEY"]
 # Set up the Google Custom Search API credentials
 GOOGLE_API_KEY = st.secrets["secrets"]["GOOGLE_API_KEY"]
 CSE_ID = st.secrets["secrets"]["CSE_ID"]
+
+# Streamlit UI
+st.title("URL Statistics Enhancer")
+url = st.text_input("Insert the URL you want to enhance with statistics:")
+
+if url:
+    st.write(f"URL provided: {url}")
+    
+    # Extract content from the URL
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    # Extracting relevant text from the page
+    paragraphs = soup.find_all('p')
+    content = ' '.join([p.get_text() for p in paragraphs if p.get_text()])
+    
+    st.write("\nExtracted Content:\n")
+    st.write(f"Summarized Text: {content[:1000]}...")  # Displaying the first 1000 characters for brevity
+
 
 def extract_content_from_url(url):
     try:
