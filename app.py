@@ -76,7 +76,6 @@ if url:
 
             unique_key = "copy_to_clipboard_" + str(hash(statistic))
             if st.button(f"Copy '{statistic}' to Clipboard", key=unique_key):
-                st.write("Example use copied to clipboard!")
                 st.copied(f"'According to a recent report, {statistic} (source: {link})'")
     else:
         st.warning("No statistics found. Try another URL or ensure the page contains relevant data.")
