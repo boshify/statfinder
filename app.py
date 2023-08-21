@@ -95,6 +95,11 @@ def process_url(main_url):
     else:
         st.error("Unable to fetch the content from the provided URL. Please check if the URL is correct and try again.")
 
+
+st.title("StatGrabber")
+st.write("Enter a URL and find statistics you can link to quickly!")
+url = st.text_input("Enter URL:")
+
 if url:
     process_url(url)
 
