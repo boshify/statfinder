@@ -3,8 +3,8 @@ from bs4 import BeautifulSoup
 import requests
 import re
 
-# Regex pattern to identify sentences with potential statistics
-STATISTIC_PATTERN = r'([^.]*?(?:\d{1,3}(?:,\d{3})*(?:\.\d+)?%|(?:1 in \d+)|(?:1 of \d+)|(?:\$\d{1,3}(?:,\d{3})*(?:\.\d+)?)[^.]*\.)'
+# Corrected Regex pattern to identify sentences with potential statistics
+STATISTIC_PATTERN = r'([^.]*?(?:\d{1,3}(?:,\d{3})*(?:\.\d+)?%|(?:1 in \d+)|(?:1 of \d+)|\$\d{1,3}(?:,\d{3})*(?:\.\d+)?)[^.]*\.)'
 
 def stylish_box(statistic, url):
     box_content = f"""
