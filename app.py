@@ -2,8 +2,6 @@ import streamlit as st
 import openai
 from bs4 import BeautifulSoup
 import requests
-import time
-import random
 import re
 
 # Load secrets
@@ -17,11 +15,11 @@ openai.api_key = OPENAI_API_KEY
 
 # Regex patterns to identify sentences with potential statistics
 STATISTIC_PATTERNS = [
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',  # Percentages
-    r'1 in \d+',                      # '1 in 10'
-    r'1 of \d+',                      # '1 of 10'
-    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?',  # Dollar values
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',    # Decimal and non-decimal numbers
+    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',
+    r'1 in \d+',                      
+    r'1 of \d+',                      
+    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?',
+    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',    
 ]
 
 def chunk_text(text, max_length=1500):
@@ -65,29 +63,19 @@ def get_webpage_content(url):
     except:
         return None
 
-def is_html(content):
-    return content is not None and any(tag in content.lower() for tag in ['<html', '<body', '<head', '<script', '<div', '<span', '<a'])
-
 def extract_content_from_html(html_content):
-    if not is_html(html_content):
-        return ""
-    
-    try:
-        soup = BeautifulSoup(html_content, 'html.parser')
-    except Exception:
-        soup = BeautifulSoup(html_content, 'lxml')
-
+    soup = BeautifulSoup(html_content, 'lxml')
     for script in soup(["script", "style"]):
         script.extract()
     return " ".join(soup.stripped_strings)
 
-def search_google(query, exclude_url):
+def search_google(query, exclude_urls=[]):
     url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API_KEY}&cx={CSE_ID}"
     response = requests.get(url).json()
     if 'items' in response:
         for item in response['items']:
             link = item.get('link')
-            if link and link != exclude_url:
+            if link and link not in exclude_urls:
                 return link
     return None
 
@@ -113,10 +101,11 @@ def process_url(main_url):
         text_content = extract_content_from_html(html_content)
         chunks = chunk_text(text_content)
         aggregated_points = []
+        used_links = []
         
         for text_chunk in chunks:
             response = openai.Completion.create(
-                engine="text-davinci-002",
+                engine="davinci",
                 prompt=f"Provide concise summaries for the main ideas in the following content:\n{text_chunk}",
                 max_tokens=150
             )
@@ -125,9 +114,10 @@ def process_url(main_url):
             
         for idx, point in enumerate(aggregated_points[:10], 1):
             search_query = f"statistics 2023 {point}"
-            stat_url = search_google(search_query, main_url)
+            stat_url = search_google(search_query, exclude_urls=[main_url] + used_links)
             if stat_url:
                 statistic, _ = extract_statistic_from_url(stat_url)
+                used_links.append(stat_url)
             else:
                 statistic = None
 
