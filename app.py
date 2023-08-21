@@ -5,20 +5,14 @@ import re
 
 # Regex patterns to identify sentences with potential statistics
 STATISTIC_PATTERNS = [
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',  # Matches percentages
-    r'1 in \d+',                      # Matches '1 in 10'
-    r'1 of \d+',                      # Matches '1 of 10'
-    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?',  # Matches dollar values
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?'    # Matches decimal and non-decimal numbers
+    r'(?:(?:\d{1,3}(?:,\d{3})*(?:\.\d+)?)%|(?:1 in \d+)|(?:1 of \d+)|(?:\$\d{1,3}(?:,\d{3})*(?:\.\d+)?))[^\.]*\.',
 ]
 
 def stylish_box(statistic, url):
     box_content = f"""
-    <div>
-        <strong>Statistic:</strong> {statistic}<br>
-        <strong>URL:</strong> <a href="{url}" target="_blank">{url}</a><br>
-        <strong>Example:</strong> In a recent discussion, I mentioned that '{statistic}'.
-    </div>
+    <strong>Statistic:</strong> {statistic}<br>
+    <strong>URL:</strong> <a href="{url}" target="_blank">{url}</a><br>
+    <strong>Example:</strong> In a recent discussion, I mentioned that '{statistic}'.
     """
     box_style = f"""
     <div style="
@@ -52,10 +46,7 @@ def extract_statistics(text_content, url):
     results = []
     for pattern in STATISTIC_PATTERNS:
         matches = re.findall(pattern, text_content)
-        for match in matches:
-            start_idx = text_content.find(match)
-            surrounding_text = text_content[max(0, start_idx - 30):min(start_idx + len(match) + 30, len(text_content))]
-            results.append(surrounding_text.strip())
+        results.extend(matches)
     return [stylish_box(statistic, url) for statistic in results[:10]]
 
 def process_url(url):
