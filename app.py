@@ -10,7 +10,7 @@ def stylish_box(statistic, url):
     box_content = f"""
     <strong>Statistic:</strong> {statistic}<br>
     <strong>URL:</strong> <a href="{url}" target="_blank">{url}</a><br>
-    <strong>Example:</strong> In a recent discussion, I mentioned that '{statistic}'.
+    <strong>Example:</strong> In a recent discussion, I mentioned that '{statistic[:50]}...'.
     """
     box_style = f"""
     <div style="
@@ -42,18 +42,19 @@ def extract_content_from_html(html_content):
 
 def extract_statistics(text_content, url):
     matches = re.findall(STATISTIC_PATTERN, text_content)
-    return [stylish_box(statistic, url) for statistic in matches[:10]]
+    return [stylish_box(statistic[:150], url) for statistic in matches[:10]]
 
 def process_url(url):
-    html_content = get_webpage_content(url)
-    if html_content:
-        text_content = extract_content_from_html(html_content)
-        statistics_boxes = extract_statistics(text_content, url)
-        
-        for box in statistics_boxes:
-            st.markdown(box, unsafe_allow_html=True)
-    else:
-        st.error("Unable to fetch the content from the provided URL. Please check if the URL is correct and try again.")
+    with st.spinner("Extracting statistics..."):
+        html_content = get_webpage_content(url)
+        if html_content:
+            text_content = extract_content_from_html(html_content)
+            statistics_boxes = extract_statistics(text_content, url)
+            
+            for box in statistics_boxes:
+                st.markdown(box, unsafe_allow_html=True)
+        else:
+            st.error("Unable to fetch the content from the provided URL. Please check if the URL is correct and try again.")
 
 st.title("StatGrabber")
 st.write("Enter a URL and find statistics you can link to quickly!")
