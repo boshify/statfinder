@@ -2,7 +2,6 @@ import streamlit as st
 import openai
 from bs4 import BeautifulSoup
 import requests
-import re
 
 # Load secrets
 secrets = st.secrets["secrets"]
@@ -26,23 +25,6 @@ def chunk_text(text, max_length=1500):
     if chunk:
         chunks.append(chunk)
     return chunks
-
-def stylish_box(content):
-    box_style = """
-    <div style="
-        border: 2px solid #f1f1f1;
-        border-radius: 5px;
-        padding: 10px;
-        margin: 10px 0px;
-        box-shadow: 2px 2px 12px #aaa;">
-        {content}
-    </div>
-    """
-    return box_style.format(content=content)
-
-st.title("StatGrabber")
-st.write("Enter a URL and find statistics you can link to quickly!")
-url = st.text_input("Enter URL:")
 
 def get_webpage_content(url):
     headers = {
@@ -75,9 +57,10 @@ def extract_statistic_from_url(stat_url):
     if not page_content:
         return None, stat_url
     page_text = extract_content_from_html(page_content)
-    
-    # For now, just return the first 300 characters. This can be improved further.
-    return page_text[:300], stat_url
+    # Truncate while ensuring the sentence doesn't cut off abruptly
+    sentences = page_text.split('.')
+    truncated_text = ".".join(sentences[:2])
+    return truncated_text, stat_url
 
 def process_url(main_url):
     html_content = get_webpage_content(main_url)
@@ -105,10 +88,10 @@ def process_url(main_url):
                 statistic = None
 
             if statistic:
-                content = f"<h3>{idx}. {point}</h3><br>Statistic: {statistic}<br>Example: In a recent discussion on cryptocurrencies, I mentioned that '{statistic}'.<br><br>URL: {stat_url}"
+                content = f"<h4>{idx}. {point}</h4><br><h4>Statistic:</h4> <p>{statistic}</p><h4>Example:</h4> <p>In a recent discussion on cryptocurrencies, I mentioned that '{statistic}'.</p><h4>URL:</h4> <p>{stat_url}</p>"
             else:
-                content = f"<h3>{idx}. {point}</h3><br>No relevant statistic found."
-            st.markdown(stylish_box(content), unsafe_allow_html=True)
+                content = f"<h4>{idx}. {point}</h4><br>No relevant statistic found."
+            st.markdown(content, unsafe_allow_html=True)
     else:
         st.error("Unable to fetch the content from the provided URL. Please check if the URL is correct and try again.")
 
