@@ -3,10 +3,8 @@ from bs4 import BeautifulSoup
 import requests
 import re
 
-# Regex patterns to identify sentences with potential statistics
-STATISTIC_PATTERNS = [
-    r'(?:(?:\d{1,3}(?:,\d{3})*(?:\.\d+)?)%|(?:1 in \d+)|(?:1 of \d+)|(?:\$\d{1,3}(?:,\d{3})*(?:\.\d+)?))[^\.]*\.',
-]
+# Regex pattern to identify sentences with potential statistics
+STATISTIC_PATTERN = r'([^.]*?(?:\d{1,3}(?:,\d{3})*(?:\.\d+)?%|(?:1 in \d+)|(?:1 of \d+)|(?:\$\d{1,3}(?:,\d{3})*(?:\.\d+)?)[^.]*\.)'
 
 def stylish_box(statistic, url):
     box_content = f"""
@@ -43,11 +41,8 @@ def extract_content_from_html(html_content):
     return " ".join(soup.stripped_strings)
 
 def extract_statistics(text_content, url):
-    results = []
-    for pattern in STATISTIC_PATTERNS:
-        matches = re.findall(pattern, text_content)
-        results.extend(matches)
-    return [stylish_box(statistic, url) for statistic in results[:10]]
+    matches = re.findall(STATISTIC_PATTERN, text_content)
+    return [stylish_box(statistic, url) for statistic in matches[:10]]
 
 def process_url(url):
     html_content = get_webpage_content(url)
