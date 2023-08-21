@@ -13,15 +13,6 @@ OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
 # Initialize OpenAI
 openai.api_key = OPENAI_API_KEY
 
-# Regex patterns to identify sentences with potential statistics
-STATISTIC_PATTERNS = [
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?%',
-    r'1 in \d+',                      
-    r'1 of \d+',                      
-    r'\$\d{1,3}(?:,\d{3})*(?:\.\d+)?',
-    r'\d{1,3}(?:,\d{3})*(?:\.\d+)?',    
-]
-
 def chunk_text(text, max_length=1500):
     sentences = text.split('.')
     chunks = []
@@ -69,13 +60,13 @@ def extract_content_from_html(html_content):
         script.extract()
     return " ".join(soup.stripped_strings)
 
-def search_google(query, exclude_urls=[]):
+def search_google(query):
     url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API_KEY}&cx={CSE_ID}"
     response = requests.get(url).json()
     if 'items' in response:
         for item in response['items']:
             link = item.get('link')
-            if link and link not in exclude_urls:
+            if link:
                 return link
     return None
 
@@ -85,15 +76,8 @@ def extract_statistic_from_url(stat_url):
         return None, stat_url
     page_text = extract_content_from_html(page_content)
     
-    for pattern in STATISTIC_PATTERNS:
-        matches = re.findall(pattern, page_text)
-        for match in matches:
-            start_idx = page_text.find(match)
-            surrounding_text = page_text[max(0, start_idx - 60):min(start_idx + len(match) + 60, len(page_text))]
-            surrounding_text = surrounding_text.strip()
-            if len(surrounding_text.split()) > 5:
-                return surrounding_text, stat_url
-    return None, stat_url
+    # For now, just return the first 300 characters. This can be improved further.
+    return page_text[:300], stat_url
 
 def process_url(main_url):
     html_content = get_webpage_content(main_url)
@@ -101,7 +85,6 @@ def process_url(main_url):
         text_content = extract_content_from_html(html_content)
         chunks = chunk_text(text_content)
         aggregated_points = []
-        used_links = []
         
         for text_chunk in chunks:
             response = openai.Completion.create(
@@ -113,11 +96,11 @@ def process_url(main_url):
             aggregated_points.extend(key_points)
             
         for idx, point in enumerate(aggregated_points[:10], 1):
-            search_query = f"statistics 2023 {point}"
-            stat_url = search_google(search_query, exclude_urls=[main_url] + used_links)
+            search_query = f"statistics related to {point}"
+            stat_url = search_google(search_query)
+            
             if stat_url:
                 statistic, _ = extract_statistic_from_url(stat_url)
-                used_links.append(stat_url)
             else:
                 statistic = None
 
