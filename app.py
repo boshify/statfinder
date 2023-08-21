@@ -14,10 +14,10 @@ def is_statistic(text):
         return True
     return False
 
-def format_output(data_list):
+def format_output(data_list, main_url):
     output = "**StatGrabber**\n"
     output += "Enter a URL and find statistics you can link to quickly!\n\n"
-    output += f"Enter URL:\n[{url}]({url})\n\n"
+    output += f"Enter URL:\n[{main_url}]({main_url})\n\n"
     
     for idx, (text, url) in enumerate(data_list, 1):
         if is_statistic(text):
@@ -41,4 +41,4 @@ urls = [url for _ in content]
 # Pair each content piece with its URL
 extracted_data = list(zip(content, urls))
 
-print(format_output(extracted_data))
+print(format_output(extracted_data, url))
